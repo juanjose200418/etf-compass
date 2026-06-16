@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://TU-BACKEND.up.railway.app/api'
+  apiUrl: 'https://etf-compass-production.up.railway.app/api'
 };
