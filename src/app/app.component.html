@@ -7,7 +7,7 @@
     </div>
     <div class="header-actions">
       <button class="ad-button" type="button" (click)="openPromo()">Ver anuncio</button>
-      <div class="session-pill" *ngIf="auth.user() as user">
+      <div class="session-pill" *ngIf="currentUser() as user">
         <span>{{ user.displayName }}</span>
         <button class="btn-ghost" (click)="logout()">Salir</button>
       </div>
@@ -29,7 +29,7 @@
 <main class="main">
 
   <!-- Auth / Portfolio Hub -->
-  <section class="terminal-hero" *ngIf="!auth.isAuthenticated(); else portfolioHub">
+  <section class="terminal-hero" *ngIf="!isAuthenticated(); else portfolioHub">
     <div class="hero-copy">
       <span class="eyebrow">Getquin-style ETF analytics</span>
       <h2>Introduce tus ETFs y entiende en que industrias inviertes.</h2>

@@ -95,6 +95,8 @@ export class AppComponent implements OnInit {
   readonly activePortfolioId = signal<string | null>(null);
   readonly dashboard = signal<DashboardResponse | null>(null);
   readonly analytics = signal<PortfolioAnalyticsResponse | null>(null);
+  readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
+  readonly currentUser = computed(() => this.auth.user());
   readonly activePortfolio = computed(() => this.portfolios().find(p => p.id === this.activePortfolioId()) ?? null);
   readonly selectedTickers = computed(() => new Set(this.service.selectedETFs().map(etf => etf.ticker)));
   readonly manualRows = signal<ManualInvestmentRow[]>([
@@ -241,7 +243,7 @@ export class AppComponent implements OnInit {
   private readonly moneyFormatters = new Map<string, Intl.NumberFormat>();
 
   ngOnInit(): void {
-    if (this.auth.isAuthenticated()) {
+    if (this.isAuthenticated()) {
       this.refreshPortfolioData();
     }
   }
@@ -292,6 +294,7 @@ export class AppComponent implements OnInit {
         }
 
         this.authMessage = null;
+        console.log('Authenticated:', this.isAuthenticated());
         this.refreshPortfolioData();
       },
       error: (err: unknown) => {
@@ -363,7 +366,7 @@ export class AppComponent implements OnInit {
   }
 
   refreshPortfolioData(): void {
-    if (!this.auth.isAuthenticated()) {
+    if (!this.isAuthenticated()) {
       this.portfolioLoading = false;
       return;
     }
@@ -479,7 +482,7 @@ export class AppComponent implements OnInit {
   }
 
   loadDashboard(): void {
-    if (!this.auth.isAuthenticated()) {
+    if (!this.isAuthenticated()) {
       this.dashboard.set(null);
       return;
     }
@@ -491,7 +494,7 @@ export class AppComponent implements OnInit {
   }
 
   loadAnalytics(): void {
-    if (!this.auth.isAuthenticated()) {
+    if (!this.isAuthenticated()) {
       this.analytics.set(null);
       return;
     }
@@ -670,6 +673,10 @@ export class AppComponent implements OnInit {
   }
 
   private errorMessage(err: unknown, fallback: string): string {
+    if (err instanceof Error && err.message === 'AUTH_RESPONSE_INVALID') {
+      return 'La respuesta de autenticacion no incluye un token valido.';
+    }
+
     const apiMessage = (err as { error?: { message?: string } }).error?.message;
     if (!apiMessage) {
       return fallback;

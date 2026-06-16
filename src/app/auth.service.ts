@@ -17,7 +17,15 @@ export class AuthService {
 
   login(email: string, password: string) {
     return this.http.post<ApiResponse<AuthResponse>>(buildApiUrl('/auth/login'), { email, password }).pipe(
-      map(res => this.requireAuthPayload(res)),
+      map(res => {
+        console.log('Login response:', {
+          success: res.success,
+          hasData: !!res.data,
+          hasToken: !!res.data?.accessToken,
+          hasUser: !!res.data?.user
+        });
+        return this.requireAuthPayload(res);
+      }),
       tap(auth => this.setSession(auth))
     );
   }
@@ -82,6 +90,7 @@ export class AuthService {
     this.writeStoredValue(USER_KEY, JSON.stringify(auth.user));
     this.token.set(auth.accessToken);
     this.user.set(auth.user);
+    console.log('Token exists:', !!auth.accessToken);
   }
 
   private requireAuthPayload(response: ApiResponse<AuthResponse>): AuthResponse {
@@ -115,29 +124,29 @@ export class AuthService {
   }
 
   private readStoredValue(key: string): string | null {
-    const session = this.sessionStorage();
-    const sessionValue = session?.getItem(key) ?? null;
-    if (sessionValue != null) {
-      return sessionValue;
+    const local = this.localStorage();
+    const localValue = local?.getItem(key) ?? null;
+    if (localValue != null) {
+      return localValue;
     }
 
-    const legacy = this.legacyStorage();
-    const legacyValue = legacy?.getItem(key) ?? null;
-    if (legacyValue != null && session) {
-      session.setItem(key, legacyValue);
-      legacy?.removeItem(key);
+    const legacySession = this.legacySessionStorage();
+    const sessionValue = legacySession?.getItem(key) ?? null;
+    if (sessionValue != null && local) {
+      local.setItem(key, sessionValue);
+      legacySession?.removeItem(key);
     }
-    return legacyValue;
+    return sessionValue;
   }
 
   private writeStoredValue(key: string, value: string): void {
-    this.sessionStorage()?.setItem(key, value);
-    this.legacyStorage()?.removeItem(key);
+    this.localStorage()?.setItem(key, value);
+    this.legacySessionStorage()?.removeItem(key);
   }
 
   private removeStoredValue(key: string): void {
-    this.sessionStorage()?.removeItem(key);
-    this.legacyStorage()?.removeItem(key);
+    this.localStorage()?.removeItem(key);
+    this.legacySessionStorage()?.removeItem(key);
   }
 
   private clearStoredSession(): void {
@@ -145,12 +154,12 @@ export class AuthService {
     this.removeStoredValue(USER_KEY);
   }
 
-  private sessionStorage(): Storage | null {
-    return typeof window === 'undefined' ? null : window.sessionStorage;
+  private localStorage(): Storage | null {
+    return typeof window === 'undefined' ? null : window.localStorage;
   }
 
-  private legacyStorage(): Storage | null {
-    return typeof window === 'undefined' ? null : window.localStorage;
+  private legacySessionStorage(): Storage | null {
+    return typeof window === 'undefined' ? null : window.sessionStorage;
   }
 
   private isTokenExpired(token: string | null): boolean {
