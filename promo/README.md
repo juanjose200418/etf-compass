@@ -59,6 +59,8 @@ Render MP4:
 npm run promo:render
 ```
 
+If HyperFrames fails on Chrome screenshot capture in low-RAM environments, keep the render on a single worker and draft quality as configured in `package.json`.
+
 ## Structure
 
 | Time  | Scene                          |

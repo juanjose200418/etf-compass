@@ -265,22 +265,36 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    const authValidationError = this.validateAuthSubmission();
+    if (authValidationError) {
+      this.authError = authValidationError;
+      this.authMessage = null;
+      return;
+    }
+
     this.authLoading = true;
     this.clearAuthFeedback();
+    const normalizedEmail = this.authEmail.trim();
     const request = this.authMode === 'login'
-      ? this.auth.login(this.authEmail.trim(), this.authPassword)
-      : this.auth.register(this.authEmail.trim(), this.authPassword, this.authDisplayName.trim() || this.authEmail.trim());
+      ? this.auth.login(normalizedEmail, this.authPassword)
+      : this.auth.register(normalizedEmail, this.authPassword, this.buildRegisterDisplayName(normalizedEmail));
 
     request.subscribe({
       next: () => {
         this.authLoading = false;
         this.authPassword = '';
+        this.authDisplayName = '';
         this.authMessage = null;
         this.refreshPortfolioData();
       },
       error: err => {
         this.authLoading = false;
-        this.authError = this.errorMessage(err, 'No se pudo iniciar sesion. Revisa tus credenciales.');
+        this.authError = this.errorMessage(
+          err,
+          this.authMode === 'login'
+            ? 'No se pudo iniciar sesion. Revisa tus credenciales.'
+            : 'No se pudo crear la cuenta. Revisa email, nombre y password.'
+        );
       }
     });
   }
@@ -636,6 +650,44 @@ export class AppComponent implements OnInit {
   private errorMessage(err: unknown, fallback: string): string {
     const apiMessage = (err as { error?: { message?: string } }).error?.message;
     return apiMessage || fallback;
+  }
+
+  private validateAuthSubmission(): string | null {
+    const email = this.authEmail.trim();
+    if (!email) {
+      return 'Escribe tu email para continuar.';
+    }
+
+    if (!this.isValidEmail(email)) {
+      return 'Escribe un email valido.';
+    }
+
+    if (this.authPassword.trim().length < 8) {
+      return 'La password debe tener al menos 8 caracteres.';
+    }
+
+    if (this.authMode === 'register') {
+      const displayName = this.authDisplayName.trim();
+      if (displayName.length > 120) {
+        return 'El nombre no puede superar los 120 caracteres.';
+      }
+    }
+
+    return null;
+  }
+
+  private buildRegisterDisplayName(email: string): string {
+    const typedName = this.authDisplayName.trim();
+    if (typedName) {
+      return typedName.slice(0, 120);
+    }
+
+    const fallbackFromEmail = email.split('@')[0]?.replace(/[._-]+/g, ' ').trim();
+    return (fallbackFromEmail || 'Investor').slice(0, 120);
+  }
+
+  private isValidEmail(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
 
   private clearAuthFeedback(): void {

@@ -52,7 +52,7 @@
 
       <label *ngIf="authMode === 'register'">
         Nombre
-        <input type="text" [value]="authDisplayName" (input)="authDisplayName = $any($event.target).value" placeholder="Juan Jose">
+        <input type="text" [value]="authDisplayName" (input)="authDisplayName = $any($event.target).value" placeholder="Juan Jose" (keydown.enter)="submitAuth()">
       </label>
       <label>
         Email
@@ -63,6 +63,10 @@
         Password
         <input type="password" [value]="authPassword" (input)="authPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="submitAuth()">
       </label>
+
+      <p class="auth-helper" *ngIf="authMode === 'register'">
+        Puedes dejar el nombre vacio y usaremos un alias limpio basado en tu email.
+      </p>
 
       <ng-container *ngIf="authMode === 'recover'">
         <p class="auth-helper">

@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "promo:preview": "npx hyperframes preview promo/",
-    "promo:render": "npx hyperframes render promo/ --composition current-app-20s --output promo/current-app-20s.mp4"
+    "promo:render": "npx hyperframes render promo/ --composition current-app-20s.html --output promo/current-app-20s.mp4 --quality draft --workers 1 --low-memory-mode"
   },
   "private": true,
   "dependencies": {

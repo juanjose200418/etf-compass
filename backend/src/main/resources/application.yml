@@ -18,7 +18,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5433/etf_compass}
     username: ${DB_USERNAME:etf_compass}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:etf_compass}
   jpa:
     hibernate:
       ddl-auto: validate
