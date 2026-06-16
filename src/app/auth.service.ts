@@ -14,19 +14,14 @@ export class AuthService {
 
   readonly token = signal<string | null>(null);
   readonly user = signal<UserResponse | null>(null);
-  readonly isAuthenticated = computed(() => !!this.token() && !!this.user() && !this.isTokenExpired(this.token()));
+  private readonly expiresAt = signal<number | null>(null);
+  readonly isAuthenticated = computed(() => !!this.token() && !!this.user() && !this.isSessionExpired());
 
   login(email: string, password: string) {
     return this.http.post<ApiResponse<AuthResponse>>(buildApiUrl('/auth/login'), { email, password }).pipe(
       map(res => {
-        console.log('Login response:', {
-          success: res.success,
-          hasData: !!res.data,
-          hasToken: !!res.data?.accessToken,
-          hasUser: !!res.data?.user
-        });
         const auth = this.requireAuthPayload(res);
-        this.setSession(auth.accessToken, auth.user);
+        this.setSession(auth.accessToken, auth.user, auth.expiresInSeconds);
         return { authenticated: true } satisfies AuthResult;
       })
     );
@@ -40,7 +35,7 @@ export class AuthService {
           return { authenticated: false } satisfies AuthResult;
         }
 
-        this.setSession(auth.accessToken, auth.user);
+        this.setSession(auth.accessToken, auth.user, auth.expiresInSeconds);
         return { authenticated: true } satisfies AuthResult;
       })
     );
@@ -61,11 +56,12 @@ export class AuthService {
   logout(): void {
     this.token.set(null);
     this.user.set(null);
+    this.expiresAt.set(null);
   }
 
   authHeaders(): Record<string, string> {
     const token = this.token();
-    if (!token || this.isTokenExpired(token)) {
+    if (!token || this.isSessionExpired()) {
       this.logout();
       return {};
     }
@@ -74,7 +70,7 @@ export class AuthService {
 
   getValidToken(): string | null {
     const token = this.token();
-    if (!token || this.isTokenExpired(token)) {
+    if (!token || this.isSessionExpired()) {
       this.logout();
       return null;
     }
@@ -94,14 +90,14 @@ export class AuthService {
     }
   }
 
-  setSession(token: string, user: UserResponse): void {
+  setSession(token: string, user: UserResponse, expiresInSeconds: number): void {
     if (!token?.trim()) {
       throw new Error('AUTH_RESPONSE_INVALID');
     }
 
     this.token.set(token);
     this.user.set(user);
-    console.log('Token exists:', !!token);
+    this.expiresAt.set(Date.now() + Math.max(1, expiresInSeconds) * 1000);
   }
 
   private requireAuthPayload(response: ApiResponse<AuthResponse>): AuthResponse {
@@ -120,17 +116,8 @@ export class AuthService {
     return auth;
   }
 
-  private isTokenExpired(token: string | null): boolean {
-    if (!token) return true;
-    try {
-      const payload = token.split('.')[1];
-      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
-      const decoded = JSON.parse(atob(padded)) as { exp?: number };
-      if (!decoded.exp) return true;
-      return decoded.exp * 1000 <= Date.now();
-    } catch {
-      return true;
-    }
+  private isSessionExpired(): boolean {
+    const expiresAt = this.expiresAt();
+    return !expiresAt || expiresAt <= Date.now();
   }
 }

@@ -308,7 +308,6 @@ export class AppComponent implements OnInit {
       next: ({ authenticated }) => {
         this.authLoading = false;
         this.authPassword = '';
-        console.log('Authenticated:', authenticated && this.isAuthenticated());
 
         if (!authenticated && this.authMode === 'register') {
           this.authDisplayName = '';
