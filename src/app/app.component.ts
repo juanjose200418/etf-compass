@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, OnInit, TemplateRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, Injector, OnInit, TemplateRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
@@ -96,6 +96,7 @@ export class AppComponent implements OnInit {
   private portfolioApi = inject(PortfolioApiService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
+  private injector = inject(Injector);
 
   readonly periods = ['1Y', '3Y', '5Y'] as const;
   readonly historyRanges: HistoryRange[] = ['MAX', '5Y', '1Y', '6M', '3M', '1M', '1W', '1D'];
@@ -405,7 +406,7 @@ export class AppComponent implements OnInit {
       const selected = this.service.selectedETFs().map(etf => ({ ticker: etf.ticker, name: etf.name }));
       const range = this.comparisonHistoryRange();
       this.loadComparisonHistory(selected, range);
-    });
+    }, { injector: this.injector });
   }
 
   setAuthMode(mode: AuthMode): void {
