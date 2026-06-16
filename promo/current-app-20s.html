@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ETF Compass - Portfolio Analytics 20s</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Fraunces:opsz,wght@9..144,700;9..144,800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #05070a;
+      font-family: Manrope, sans-serif;
+      color: #f8fafc;
+    }
+
+    .composition {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      transform-origin: center center;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(45, 212, 191, 0.22), transparent 30%),
+        radial-gradient(circle at 78% 16%, rgba(251, 191, 36, 0.16), transparent 28%),
+        radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.18), transparent 34%),
+        linear-gradient(135deg, #07111f 0%, #0f172a 45%, #020617 100%);
+      isolation: isolate;
+    }
+
+    .composition::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 80px 80px;
+      mask-image: linear-gradient(to bottom, black, transparent 86%);
+      z-index: 0;
+    }
+
+    .grain {
+      position: absolute;
+      inset: 0;
+      opacity: 0.16;
+      z-index: 1;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.48'/%3E%3C/svg%3E");
+    }
+
+    .top-brand {
+      position: absolute;
+      top: 54px;
+      left: 72px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      opacity: 0;
+    }
+
+    .mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #14b8a6, #fbbf24);
+      color: #042f2e;
+      font-weight: 900;
+      box-shadow: 0 18px 48px rgba(20, 184, 166, 0.32);
+    }
+
+    .brand-name {
+      font-size: 25px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .timer {
+      position: absolute;
+      left: 72px;
+      right: 72px;
+      bottom: 52px;
+      z-index: 30;
+      height: 4px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .timer-fill {
+      width: 100%;
+      height: 100%;
+      transform-origin: left center;
+      transform: scaleX(0);
+      background: linear-gradient(90deg, #14b8a6, #fbbf24, #60a5fa);
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .scene-hero {
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .kicker {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 24px;
+      color: #5eead4;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .kicker::before, .kicker::after {
+      content: "";
+      width: 54px;
+      height: 2px;
+      background: #5eead4;
+    }
+
+    h1, h2 {
+      font-family: Fraunces, serif;
+      font-weight: 800;
+      letter-spacing: -0.07em;
+    }
+
+    h1 {
+      max-width: 1320px;
+      font-size: 126px;
+      line-height: 0.92;
+    }
+
+    .hero-sub {
+      max-width: 850px;
+      margin: 34px auto 0;
+      color: #cbd5e1;
+      font-size: 30px;
+      line-height: 1.35;
+    }
+
+    .highlight { color: #fbbf24; }
+
+    .stage {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 54px;
+      align-items: center;
+      height: 100%;
+      padding: 130px 120px 110px;
+    }
+
+    .copy h2 {
+      font-size: 78px;
+      line-height: 0.95;
+      max-width: 720px;
+    }
+
+    .copy p {
+      max-width: 660px;
+      margin-top: 28px;
+      color: #cbd5e1;
+      font-size: 27px;
+      line-height: 1.38;
+    }
+
+    .glass-card {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 32px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.05));
+      box-shadow: 0 32px 100px rgba(2, 6, 23, 0.42);
+      backdrop-filter: blur(18px);
+    }
+
+    .manual-panel {
+      padding: 34px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 26px;
+    }
+
+    .panel-head strong {
+      font-size: 25px;
+      letter-spacing: -0.03em;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 9px 14px;
+      background: rgba(20, 184, 166, 0.14);
+      color: #5eead4;
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .input-row, .allocation-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 120px;
+      align-items: center;
+      gap: 18px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      margin-top: 12px;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ticker {
+      font-size: 28px;
+      font-weight: 900;
+      color: #f8fafc;
+    }
+
+    .value {
+      justify-self: end;
+      font-size: 24px;
+      font-weight: 900;
+      color: #fbbf24;
+    }
+
+    .fake-input {
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(94, 234, 212, 0.9), rgba(94, 234, 212, 0.14));
+      transform-origin: left center;
+    }
+
+    .formula-card {
+      padding: 42px;
+    }
+
+    .formula {
+      display: grid;
+      gap: 18px;
+      margin-top: 30px;
+      font-size: 31px;
+      font-weight: 900;
+    }
+
+    .formula span {
+      display: block;
+      padding: 22px 26px;
+      border-radius: 22px;
+      background: rgba(2, 6, 23, 0.68);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .formula .result { color: #5eead4; }
+
+    .dashboard-layout {
+      height: 100%;
+      padding: 120px 90px 100px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 24px;
+    }
+
+    .dashboard-title {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+    }
+
+    .dashboard-title h2 {
+      font-size: 78px;
+      line-height: 0.95;
+    }
+
+    .networth {
+      text-align: right;
+    }
+
+    .networth span {
+      display: block;
+      color: #94a3b8;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .networth strong {
+      display: block;
+      margin-top: 6px;
+      color: #fbbf24;
+      font-size: 52px;
+      letter-spacing: -0.06em;
+    }
+
+    .allocation-card {
+      padding: 28px;
+      align-self: stretch;
+    }
+
+    .allocation-card h3 {
+      margin-bottom: 18px;
+      font-size: 25px;
+      letter-spacing: -0.03em;
+    }
+
+    .allocation-row {
+      grid-template-columns: 1fr 84px;
+      gap: 16px;
+      padding: 13px 14px;
+      margin-top: 10px;
+    }
+
+    .allocation-label {
+      min-width: 0;
+    }
+
+    .allocation-label b {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 7px;
+      font-size: 15px;
+    }
+
+    .bar-track {
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(148, 163, 184, 0.18);
+    }
+
+    .bar {
+      display: block;
+      height: 100%;
+      width: var(--w);
+      border-radius: inherit;
+      background: linear-gradient(90deg, #14b8a6, #fbbf24);
+      transform-origin: left center;
+      transform: scaleX(0);
+    }
+
+    .pct {
+      justify-self: end;
+      color: #f8fafc;
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .holdings-stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 42px;
+      align-items: center;
+      height: 100%;
+      padding: 120px;
+    }
+
+    .company-cloud {
+      position: relative;
+      height: 620px;
+    }
+
+    .company {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
+      font-weight: 900;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+      opacity: 0;
+    }
+
+    .c1 { width: 180px; height: 180px; left: 60px; top: 80px; font-size: 34px; background: rgba(20, 184, 166, 0.2); }
+    .c2 { width: 150px; height: 150px; left: 300px; top: 30px; font-size: 28px; }
+    .c3 { width: 170px; height: 170px; left: 470px; top: 190px; font-size: 30px; background: rgba(251, 191, 36, 0.18); }
+    .c4 { width: 130px; height: 130px; left: 180px; top: 320px; font-size: 23px; }
+    .c5 { width: 145px; height: 145px; left: 420px; top: 430px; font-size: 24px; background: rgba(96, 165, 250, 0.16); }
+
+    .final-scene {
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .final-card {
+      width: 1180px;
+      padding: 76px 86px;
+      border-radius: 40px;
+      background: linear-gradient(135deg, rgba(20, 184, 166, 0.22), rgba(251, 191, 36, 0.12));
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 44px 120px rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(20px);
+    }
+
+    .final-card h2 {
+      font-size: 96px;
+      line-height: 0.95;
+    }
+
+    .final-card p {
+      margin-top: 28px;
+      color: #dbeafe;
+      font-size: 31px;
+      line-height: 1.35;
+    }
+
+    .cta {
+      display: inline-flex;
+      margin-top: 40px;
+      padding: 20px 34px;
+      border-radius: 999px;
+      background: #fbbf24;
+      color: #111827;
+      font-size: 22px;
+      font-weight: 900;
+      box-shadow: 0 18px 48px rgba(251, 191, 36, 0.28);
+    }
+  </style>
+</head>
+<body>
+  <main id="root" class="composition" data-composition-id="current-app-20s" data-width="1920" data-height="1080" data-duration="20">
+    <div class="grain"></div>
+    <div class="top-brand">
+      <div class="mark">ETF</div>
+      <div class="brand-name">ETF Compass</div>
+    </div>
+    <div class="timer"><div class="timer-fill"></div></div>
+
+    <section class="scene scene-hero">
+      <div>
+        <div class="kicker">Portfolio intelligence</div>
+        <h1>Analiza tus ETFs como una plataforma premium.</h1>
+        <p class="hero-sub">Introduce <span class="highlight">ticker + valor</span>. La app calcula automaticamente exposicion por ETF, pais, sector, industria y empresas.</p>
+      </div>
+    </section>
+
+    <section class="scene scene-input">
+      <div class="stage">
+        <div class="copy">
+          <div class="kicker">Sin CSV</div>
+          <h2>Entrada manual rapida.</h2>
+          <p>Anade tus inversiones reales: IUSQ, CEBL, VGVF, EXXY, SPYD... y deja que el backend resuelva la metadata.</p>
+        </div>
+        <div class="glass-card manual-panel">
+          <div class="panel-head"><strong>Lo que inviertes en ETFs</strong><span class="pill">EUR</span></div>
+          <div class="input-row"><span class="ticker">IUSQ</span><span class="fake-input" style="width: 92%"></span><span class="value">2804</span></div>
+          <div class="input-row"><span class="ticker">CEBL</span><span class="fake-input" style="width: 72%"></span><span class="value">1191</span></div>
+          <div class="input-row"><span class="ticker">VGVF</span><span class="fake-input" style="width: 58%"></span><span class="value">853</span></div>
+          <div class="input-row"><span class="ticker">EXXY</span><span class="fake-input" style="width: 47%"></span><span class="value">681</span></div>
+          <div class="input-row"><span class="ticker">SPYD</span><span class="fake-input" style="width: 40%"></span><span class="value">581</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene scene-formula">
+      <div class="stage">
+        <div class="copy">
+          <div class="kicker">Weighted exposure</div>
+          <h2>El calculo correcto.</h2>
+          <p>Cada ETF aporta sus porcentajes internos al total de tu cartera. Nada de Unknown 100% cuando existe metadata.</p>
+        </div>
+        <div class="glass-card formula-card">
+          <div class="panel-head"><strong>Ejemplo real</strong><span class="pill">IUSQ</span></div>
+          <div class="formula">
+            <span>IUSQ = 45.9% de la cartera</span>
+            <span>Technology = 24% dentro de IUSQ</span>
+            <span class="result">Aporte total = 45.9 x 24 / 100 = 11.0%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene scene-dashboard">
+      <div class="dashboard-layout">
+        <div class="dashboard-title">
+          <div>
+            <div class="kicker">Dashboard Getquin-style</div>
+            <h2>Tu cartera desglosada.</h2>
+          </div>
+          <div class="networth"><span>Portfolio value</span><strong>6110 EUR</strong></div>
+        </div>
+
+        <article class="glass-card allocation-card">
+          <h3>Geografia</h3>
+          <div class="allocation-row"><div class="allocation-label"><b><span>United States</span></b><div class="bar-track"><i class="bar" style="--w: 52%"></i></div></div><span class="pct">52%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Europe</span></b><div class="bar-track"><i class="bar" style="--w: 27%"></i></div></div><span class="pct">27%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Emerging Markets</span></b><div class="bar-track"><i class="bar" style="--w: 10%"></i></div></div><span class="pct">10%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Japan</span></b><div class="bar-track"><i class="bar" style="--w: 5%"></i></div></div><span class="pct">5%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Other</span></b><div class="bar-track"><i class="bar" style="--w: 6%"></i></div></div><span class="pct">6%</span></div>
+        </article>
+
+        <article class="glass-card allocation-card">
+          <h3>Sectores</h3>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Technology</span></b><div class="bar-track"><i class="bar" style="--w: 23%"></i></div></div><span class="pct">23%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Financial Services</span></b><div class="bar-track"><i class="bar" style="--w: 16%"></i></div></div><span class="pct">16%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Industrials</span></b><div class="bar-track"><i class="bar" style="--w: 15%"></i></div></div><span class="pct">15%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Healthcare</span></b><div class="bar-track"><i class="bar" style="--w: 12%"></i></div></div><span class="pct">12%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Other</span></b><div class="bar-track"><i class="bar" style="--w: 34%"></i></div></div><span class="pct">34%</span></div>
+        </article>
+
+        <article class="glass-card allocation-card">
+          <h3>Industrias</h3>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Semiconductors</span></b><div class="bar-track"><i class="bar" style="--w: 8%"></i></div></div><span class="pct">8%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Software</span></b><div class="bar-track"><i class="bar" style="--w: 7%"></i></div></div><span class="pct">7%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Banks</span></b><div class="bar-track"><i class="bar" style="--w: 7%"></i></div></div><span class="pct">7%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Renewable Utilities</span></b><div class="bar-track"><i class="bar" style="--w: 5%"></i></div></div><span class="pct">5%</span></div>
+          <div class="allocation-row"><div class="allocation-label"><b><span>Other</span></b><div class="bar-track"><i class="bar" style="--w: 73%"></i></div></div><span class="pct">73%</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="scene scene-holdings">
+      <div class="holdings-stage">
+        <div class="copy">
+          <div class="kicker">Top holdings</div>
+          <h2>Tambien ves a que empresas estas expuesto.</h2>
+          <p>Apple, Microsoft, NVIDIA, ASML, Shell, Cameco... agregadas a traves de tus ETFs.</p>
+        </div>
+        <div class="company-cloud">
+          <div class="company c1">AAPL</div>
+          <div class="company c2">MSFT</div>
+          <div class="company c3">NVDA</div>
+          <div class="company c4">ASML</div>
+          <div class="company c5">CCJ</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene final-scene">
+      <div class="final-card">
+        <h2>ETF Compass convierte tus ETFs en inteligencia accionable.</h2>
+        <p>Introduce inversiones. Calcula exposiciones. Decide con contexto.</p>
+        <div class="cta">Abrir dashboard</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.__timelines = window.__timelines || {};
+
+    gsap.defaults({ ease: "power3.out", duration: 0.7 });
+    gsap.set(".scene", { autoAlpha: 0 });
+    gsap.set(".top-brand", { y: -20, autoAlpha: 0 });
+    gsap.set([".kicker", "h1", "h2", ".hero-sub", ".copy p", ".glass-card", ".dashboard-title", ".allocation-card", ".final-card"], { y: 34, autoAlpha: 0 });
+    gsap.set(".input-row", { x: 42, autoAlpha: 0 });
+    gsap.set(".formula span", { x: 28, autoAlpha: 0 });
+    gsap.set(".allocation-row", { y: 20, autoAlpha: 0 });
+    gsap.set(".company", { scale: 0.45, autoAlpha: 0 });
+
+    const tl = gsap.timeline({ paused: true });
+
+    tl.to(".timer-fill", { scaleX: 1, duration: 20, ease: "none" }, 0);
+    tl.to(".top-brand", { y: 0, autoAlpha: 1, duration: 0.6 }, 0.2);
+
+    tl.to(".scene-hero", { autoAlpha: 1, duration: 0.25 }, 0);
+    tl.to(".scene-hero .kicker", { y: 0, autoAlpha: 1 }, 0.35);
+    tl.to(".scene-hero h1", { y: 0, autoAlpha: 1, duration: 1.0 }, 0.65);
+    tl.to(".scene-hero .hero-sub", { y: 0, autoAlpha: 1 }, 1.35);
+    tl.to(".scene-hero", { autoAlpha: 0, y: -28, duration: 0.45 }, 3.2);
+
+    tl.to(".scene-input", { autoAlpha: 1, duration: 0.25 }, 3.25);
+    tl.to(".scene-input .kicker", { y: 0, autoAlpha: 1 }, 3.45);
+    tl.to(".scene-input h2", { y: 0, autoAlpha: 1 }, 3.65);
+    tl.to(".scene-input .copy p", { y: 0, autoAlpha: 1 }, 3.95);
+    tl.to(".scene-input .glass-card", { y: 0, autoAlpha: 1 }, 4.05);
+    tl.to(".input-row", { x: 0, autoAlpha: 1, stagger: 0.12 }, 4.45);
+    tl.from(".fake-input", { scaleX: 0, stagger: 0.12, duration: 0.55 }, 4.75);
+    tl.to(".scene-input", { autoAlpha: 0, x: -40, duration: 0.45 }, 7.0);
+
+    tl.to(".scene-formula", { autoAlpha: 1, duration: 0.25 }, 7.05);
+    tl.to(".scene-formula .kicker", { y: 0, autoAlpha: 1 }, 7.25);
+    tl.to(".scene-formula h2", { y: 0, autoAlpha: 1 }, 7.45);
+    tl.to(".scene-formula .copy p", { y: 0, autoAlpha: 1 }, 7.75);
+    tl.to(".formula-card", { y: 0, autoAlpha: 1 }, 7.9);
+    tl.to(".formula span", { x: 0, autoAlpha: 1, stagger: 0.28 }, 8.35);
+    tl.to(".formula .result", { scale: 1.035, yoyo: true, repeat: 1, duration: 0.35, ease: "power2.inOut" }, 9.6);
+    tl.to(".scene-formula", { autoAlpha: 0, x: 40, duration: 0.45 }, 10.9);
+
+    tl.to(".scene-dashboard", { autoAlpha: 1, duration: 0.25 }, 11.0);
+    tl.to(".dashboard-title", { y: 0, autoAlpha: 1 }, 11.2);
+    tl.to(".allocation-card", { y: 0, autoAlpha: 1, stagger: 0.12 }, 11.55);
+    tl.to(".allocation-row", { y: 0, autoAlpha: 1, stagger: 0.025 }, 12.05);
+    tl.to(".bar", { scaleX: 1, stagger: 0.025, duration: 0.7 }, 12.2);
+    tl.to(".scene-dashboard", { autoAlpha: 0, scale: 0.985, duration: 0.45 }, 15.2);
+
+    tl.to(".scene-holdings", { autoAlpha: 1, duration: 0.25 }, 15.25);
+    tl.to(".scene-holdings .kicker", { y: 0, autoAlpha: 1 }, 15.45);
+    tl.to(".scene-holdings h2", { y: 0, autoAlpha: 1 }, 15.65);
+    tl.to(".scene-holdings .copy p", { y: 0, autoAlpha: 1 }, 15.95);
+    tl.to(".company", { scale: 1, autoAlpha: 1, stagger: 0.13, ease: "back.out(1.8)" }, 16.0);
+    tl.to(".company", { y: -16, stagger: 0.05, yoyo: true, repeat: 1, duration: 0.55, ease: "sine.inOut" }, 17.1);
+    tl.to(".scene-holdings", { autoAlpha: 0, y: -26, duration: 0.45 }, 18.0);
+
+    tl.to(".final-scene", { autoAlpha: 1, duration: 0.25 }, 18.05);
+    tl.to(".final-card", { y: 0, autoAlpha: 1, duration: 0.75 }, 18.25);
+    tl.from(".cta", { y: 22, autoAlpha: 0, duration: 0.5 }, 18.9);
+    tl.to(".cta", { scale: 1.04, yoyo: true, repeat: 1, duration: 0.35, ease: "power2.inOut" }, 19.35);
+
+    tl.to({}, { duration: 0.01 }, 20);
+
+    window.__timelines["current-app-20s"] = tl;
+
+    // HyperFrames seeks the paused GSAP timeline itself. Direct browser/Angular
+    // preview still autoplays so the app's "Ver anuncio" button works.
+    if (typeof window.__HYPERFRAMES__ === "undefined") {
+      const fitComposition = () => {
+        const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        document.querySelector(".composition").style.transform = `scale(${scale})`;
+      };
+
+      fitComposition();
+      window.addEventListener("resize", fitComposition);
+      tl.play(0);
+    }
+  </script>
+</body>
+</html>

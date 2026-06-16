@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: etf-compass-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-etf_compass}
+      POSTGRES_USER: ${DB_USERNAME:-etf_compass}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change-me-local}
+    ports:
+      - "5433:5432"
+    volumes:
+      - etf-compass-postgres:/var/lib/postgresql/data
+
+volumes:
+  etf-compass-postgres:

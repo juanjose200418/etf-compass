@@ -1,0 +1,590 @@
+<!-- Header -->
+<header class="header">
+  <div class="header-content">
+    <div>
+      <h1 class="logo">ETF Compass</h1>
+      <p class="subtitle">Portfolio intelligence, ETF exposure and broker imports</p>
+    </div>
+    <div class="header-actions">
+      <button class="ad-button" type="button" (click)="openPromo()">Ver anuncio</button>
+      <div class="session-pill" *ngIf="auth.user() as user">
+        <span>{{ user.displayName }}</span>
+        <button class="btn-ghost" (click)="logout()">Salir</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="promo-modal" *ngIf="showPromo" role="dialog" aria-modal="true" aria-label="Video promocional">
+  <div class="promo-backdrop" (click)="closePromo()"></div>
+  <div class="promo-frame-wrap">
+    <div class="promo-toolbar">
+      <span>ETF Compass · anuncio 20s</span>
+      <button type="button" (click)="closePromo()" aria-label="Cerrar video">×</button>
+    </div>
+    <iframe src="/promo/current-app-20s.html" title="ETF Compass promotional video" sandbox="allow-scripts" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
+  </div>
+</section>
+
+<main class="main">
+
+  <!-- Auth / Portfolio Hub -->
+  <section class="terminal-hero" *ngIf="!auth.isAuthenticated(); else portfolioHub">
+    <div class="hero-copy">
+      <span class="eyebrow">Getquin-style ETF analytics</span>
+      <h2>Introduce tus ETFs y entiende en que industrias inviertes.</h2>
+      <p>
+        Inicia sesion para desbloquear dashboard financiero, exposicion por sector, industria, pais, divisa y posiciones con mejor/peor rendimiento.
+      </p>
+      <div class="hero-metrics">
+        <span>JWT seguro</span>
+        <span>Entrada manual ETF</span>
+        <span>Analisis ETF</span>
+      </div>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button type="button" [class.active]="authMode === 'login'" (click)="setAuthMode('login')">Entrar</button>
+        <button type="button" [class.active]="authMode === 'register'" (click)="setAuthMode('register')">Crear cuenta</button>
+        <button type="button" [class.active]="authMode === 'recover'" (click)="setAuthMode('recover')">Recuperar</button>
+      </div>
+
+      <label *ngIf="authMode === 'register'">
+        Nombre
+        <input type="text" [value]="authDisplayName" (input)="authDisplayName = $any($event.target).value" placeholder="Juan Jose">
+      </label>
+      <label>
+        Email
+        <input type="email" [value]="authEmail" (input)="authEmail = $any($event.target).value" placeholder="tu@email.com" (keydown.enter)="authMode === 'recover' && authResetStep === 'request' ? requestPasswordResetCode() : submitAuth()">
+      </label>
+
+      <label *ngIf="authMode !== 'recover'">
+        Password
+        <input type="password" [value]="authPassword" (input)="authPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="submitAuth()">
+      </label>
+
+      <ng-container *ngIf="authMode === 'recover'">
+        <p class="auth-helper">
+          {{ authResetStep === 'request'
+            ? 'Te enviaremos un codigo temporal para confirmar que eres tu.'
+            : 'Introduce el codigo recibido por correo y define una nueva password.' }}
+        </p>
+
+        <label *ngIf="authResetStep === 'confirm'">
+          Codigo de verificacion
+          <input type="text" inputmode="numeric" maxlength="6" [value]="authResetCode" (input)="authResetCode = $any($event.target).value" placeholder="123456" (keydown.enter)="confirmPasswordReset()">
+        </label>
+
+        <label *ngIf="authResetStep === 'confirm'">
+          Nueva password
+          <input type="password" [value]="authResetPassword" (input)="authResetPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="confirmPasswordReset()">
+        </label>
+      </ng-container>
+
+      <p class="form-error" *ngIf="authError">{{ authError }}</p>
+      <p class="form-success" *ngIf="authMessage">{{ authMessage }}</p>
+      <button class="btn-primary-wide" [disabled]="authLoading" (click)="submitAuth()">
+        {{ authLoading
+          ? (authMode === 'recover' ? 'Procesando...' : 'Conectando...')
+          : (authMode === 'login'
+            ? 'Iniciar sesion'
+            : authMode === 'register'
+              ? 'Crear cuenta'
+              : authResetStep === 'request'
+                ? 'Enviar codigo'
+                : 'Cambiar password') }}
+      </button>
+
+      <button class="btn-text-link" type="button" *ngIf="authMode === 'login'" (click)="setAuthMode('recover')">
+        He olvidado mi password
+      </button>
+    </div>
+  </section>
+
+  <ng-template #portfolioHub>
+    <section class="portfolio-shell">
+      <div class="portfolio-topbar">
+        <div>
+          <span class="eyebrow">Portfolio command center</span>
+          <h2>Dashboard financiero</h2>
+          <p>Añade manualmente cada ETF y su valor invertido para calcular asignacion, industrias, sectores y exposicion geografica.</p>
+        </div>
+        <button class="btn-refresh" [disabled]="portfolioLoading" (click)="refreshPortfolioData()">Actualizar</button>
+      </div>
+
+      <div class="dashboard-orbit" *ngIf="activePortfolio() as portfolio">
+        <button class="orbit-chip primary" type="button" (click)="focusSection('portfolio-summary')">
+          <span>Radar cartera</span>
+          <strong>{{ portfolio.positions.length }} posiciones</strong>
+        </button>
+        <button class="orbit-chip" type="button" (click)="focusSection('portfolio-workbench')">
+          <span>Workbench</span>
+          <strong>{{ populatedManualRowCount() }} ETFs editables</strong>
+        </button>
+        <button class="orbit-chip" type="button" (click)="focusSection('industry-panel')">
+          <span>Industrias</span>
+          <strong>{{ analyticsSectionCount(analytics()?.industryExposure) }} lineas</strong>
+        </button>
+        <button class="orbit-chip" type="button" (click)="focusSection('sector-panel')">
+          <span>Sectores</span>
+          <strong>{{ analytics()?.sectorDataQuality?.coveragePercentage?.toFixed(1) || '0.0' }}% coverage</strong>
+        </button>
+        <button class="orbit-chip" type="button" (click)="focusSection('country-panel')">
+          <span>Geografia</span>
+          <strong>{{ analytics()?.countryDataQuality?.coveragePercentage?.toFixed(1) || '0.0' }}% coverage</strong>
+        </button>
+        <button class="orbit-chip" type="button" (click)="focusSection('etf-panel')">
+          <span>Asignacion ETF</span>
+          <strong>{{ analyticsSectionCount(analytics()?.etfAllocation) }} bloques</strong>
+        </button>
+      </div>
+
+      <div class="portfolio-grid" id="portfolio-summary" [class.section-focused]="isFocusedSection('portfolio-summary')" *ngIf="dashboard() as dash">
+        <article class="metric-card networth interactive-card" (click)="focusSection('portfolio-workbench')">
+          <span>Net worth</span>
+          <strong>{{ formatMoney(dash.netWorth, activePortfolio()?.baseCurrency || 'EUR') }}</strong>
+          <em [class.negative]="dash.totalProfitLoss < 0">{{ formatPercentValue(dash.profitLossPercentage) }}</em>
+          <small>Abre el workbench para revisar que ETFs impulsan el total.</small>
+        </article>
+        <article class="metric-card interactive-card" (click)="focusSection('etf-panel')">
+          <span>Invertido</span>
+          <strong>{{ formatMoney(dash.totalInvestedCapital, activePortfolio()?.baseCurrency || 'EUR') }}</strong>
+          <em>Capital base</em>
+          <small>Salta al mapa ETF para ver el peso de cada posicion.</small>
+        </article>
+        <article class="metric-card interactive-card" (click)="focusSection('sector-panel')">
+          <span>Profit / loss</span>
+          <strong [class.negative]="dash.totalProfitLoss < 0">{{ formatMoney(dash.totalProfitLoss, activePortfolio()?.baseCurrency || 'EUR') }}</strong>
+          <em>{{ dash.positionCount }} posiciones</em>
+          <small>Explora sectores e industrias para entender la concentracion.</small>
+        </article>
+      </div>
+
+      <div class="portfolio-actions" id="portfolio-workbench" [class.section-focused]="isFocusedSection('portfolio-workbench')">
+        <div class="portfolio-create elevated-panel">
+          <h3>Cartera</h3>
+          <div class="inline-form">
+            <input type="text" [value]="portfolioName" (input)="portfolioName = $any($event.target).value" placeholder="Mi cartera ETF">
+            <input class="currency-input" type="text" maxlength="3" [value]="portfolioCurrency" (input)="portfolioCurrency = $any($event.target).value.toUpperCase()">
+            <button class="btn-solid" [disabled]="portfolioLoading" (click)="createPortfolio()">Crear</button>
+          </div>
+          <div class="portfolio-tabs" *ngIf="portfolios().length > 0">
+            <button class="portfolio-chip" *ngFor="let portfolio of portfolios()" [class.active]="portfolio.id === activePortfolioId()" (click)="selectPortfolio(portfolio.id)">
+              <span class="portfolio-chip-main">{{ portfolio.name }}</span>
+              <span class="portfolio-chip-value">{{ formatMoney(portfolio.totalValue, portfolio.baseCurrency) }}</span>
+              <span class="portfolio-chip-count">{{ portfolio.positions.length }} posiciones</span>
+              <span class="portfolio-delete" title="Eliminar cartera" (click)="deletePortfolio(portfolio.id, $event)">×</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="broker-import investment-table-card elevated-panel">
+          <div class="investment-table-header">
+            <div>
+              <span class="eyebrow compact">Editable</span>
+              <h3>Lo que inviertes en ETFs</h3>
+              <p>Modifica libremente ETF y valor invertido. El backend identifica el ETF y usa sus participaciones para calcular exposicion geografica, sectorial, industrial y a empresas.</p>
+            </div>
+            <div class="table-summary">
+              <strong>{{ populatedManualRowCount() }}</strong>
+              <span>ETFs en tabla</span>
+            </div>
+          </div>
+          <div class="manual-table">
+            <p class="manual-table-note" *ngIf="manualRowsNotice">{{ manualRowsNotice }}</p>
+            <div class="manual-head"><span>ETF o ticker</span><span>Valor invertido</span><span></span></div>
+            <div class="manual-row" *ngFor="let row of manualRows(); trackBy: trackByManualRow">
+              <input class="etf-name-input" type="text" [value]="row.etf" placeholder="Ej. IUSQ, MSCI ACWI, SPYD" (input)="updateManualRow(row.id, 'etf', $any($event.target).value)">
+              <div class="money-cell">
+                <input type="number" min="0" step="0.01" [value]="row.value" placeholder="0.00" (input)="updateManualRow(row.id, 'value', $any($event.target).value)">
+                <span>{{ activePortfolio()?.baseCurrency || portfolioCurrency || 'EUR' }}</span>
+              </div>
+              <button class="btn-mini" type="button" (click)="removeManualRow(row.id)">×</button>
+            </div>
+          </div>
+          <div class="table-actions">
+            <button class="btn-add-row" type="button" (click)="addManualRow()">+ Añadir ETF</button>
+              <button class="btn-solid dark" [disabled]="importLoading || !activePortfolioId()" (click)="importManualInvestments()">
+                {{ importLoading ? 'Calculando...' : 'Añadir inversiones' }}
+              </button>
+          </div>
+          <p class="form-success" *ngIf="importMessage">{{ importMessage }}</p>
+          <p class="form-error" *ngIf="importError">{{ importError }}</p>
+        </div>
+      </div>
+
+      <p class="form-error" *ngIf="portfolioError">{{ portfolioError }}</p>
+
+      <div class="analytics-grid" *ngIf="analytics() as data">
+        <article class="analysis-note">
+          <strong>Precision de exposiciones</strong>
+          <span>Los sectores, industrias y geografias se calculan con metadata ETF ponderada y, cuando hay holdings suficientes, con desglose real por posiciones. Si falta cobertura del proveedor, lo veras marcado como Unclassified en lugar de esconderse como Other.</span>
+        </article>
+        <article class="analysis-card interactive-panel" id="industry-panel" [class.expanded]="analyticsExpanded.industry" [class.section-focused]="isFocusedSection('industry-panel')">
+          <div class="analysis-card-head">
+            <div>
+              <h3>Industrias</h3>
+              <p>{{ analyticsSectionCount(data.industryExposure) }} categorias disponibles</p>
+            </div>
+            <button class="analysis-toggle" type="button" *ngIf="shouldShowAnalyticsToggle(data.industryExposure)" (click)="toggleAnalyticsSection('industry')">
+              {{ analyticsExpanded.industry ? 'Ver menos' : 'Ver todas' }}
+            </button>
+          </div>
+          <div class="analysis-quality" *ngIf="data.industryDataQuality as quality">
+            <span>Cobertura industria: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
+            <span>Look-through real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
+            <span>Datos estimados: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
+          </div>
+          <div class="analysis-warning" *ngIf="dataQualityWarning('industry', data.industryDataQuality) as warning">
+            <strong>Warning</strong>
+            <p>{{ warning }}</p>
+          </div>
+          <div class="analysis-scroll">
+            <div class="allocation-row" *ngFor="let item of visibleSlices('industry', data.industryExposure); trackBy: trackByLabel">
+              <div class="allocation-meta">
+                <span class="allocation-label" [attr.title]="allocationTooltip(item.label, 'industry')">{{ formatAllocationLabel(item.label, 'industry') }}</span>
+                <strong class="allocation-percent">{{ item.percentage.toFixed(1) }}%</strong>
+              </div>
+              <div class="bar-track"><i class="bar-fill" [style.width]="barWidth(item.percentage)"></i></div>
+            </div>
+          </div>
+          <div class="analysis-unclassified" *ngFor="let item of unclassifiedSlices(data.industryExposure)">
+            <strong>{{ formatAllocationLabel(item.label, 'industry') }}</strong>
+            <span>{{ item.percentage.toFixed(1) }}%</span>
+            <p>Incluye holdings o pesos residuales que el proveedor no pudo clasificar con mas detalle.</p>
+            <div class="analysis-issues compact" *ngIf="data.industryDataQuality.affectedEtfs.length > 0">
+              <div class="analysis-issue" *ngFor="let issue of data.industryDataQuality.affectedEtfs">
+                <div>
+                  <span>{{ issue.ticker }}</span>
+                  <em>{{ issue.unclassifiedPortfolioPercentage.toFixed(1) }}% sin clasificar · fuente {{ issue.sourceType }}</em>
+                </div>
+                <p>{{ issue.reason }}</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="analysis-card interactive-panel" id="sector-panel" [class.expanded]="analyticsExpanded.sector" [class.section-focused]="isFocusedSection('sector-panel')">
+          <div class="analysis-card-head">
+            <div>
+              <h3>Sectores</h3>
+              <p>{{ analyticsSectionCount(data.sectorExposure) }} categorias disponibles</p>
+            </div>
+            <button class="analysis-toggle" type="button" *ngIf="shouldShowAnalyticsToggle(data.sectorExposure)" (click)="toggleAnalyticsSection('sector')">
+              {{ analyticsExpanded.sector ? 'Ver menos' : 'Ver todos' }}
+            </button>
+          </div>
+          <div class="analysis-quality" *ngIf="data.sectorDataQuality as quality">
+            <span>Cobertura sectorial: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
+            <span>Look-through real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
+            <span>Datos estimados: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
+          </div>
+          <div class="analysis-warning" *ngIf="sectorCoverageWarning(data) as warning">
+            <strong>Warning</strong>
+            <p>{{ warning }}</p>
+          </div>
+          <div class="analysis-issues" *ngIf="hasSignificantSectorGap(data) && data.sectorDataQuality.affectedEtfs.length > 0">
+            <strong>ETFs con menor precision sectorial</strong>
+            <div class="analysis-issue" *ngFor="let issue of data.sectorDataQuality.affectedEtfs">
+              <div>
+                <span>{{ issue.ticker }}</span>
+                <em>{{ issue.portfolioPercentage.toFixed(1) }}% de la cartera · cobertura holdings {{ issue.holdingCoveragePercentage.toFixed(1) }}%</em>
+              </div>
+              <p>{{ issue.reason }}</p>
+            </div>
+          </div>
+          <div class="analysis-scroll">
+            <div class="allocation-row" *ngFor="let item of visibleSlices('sector', data.sectorExposure); trackBy: trackByLabel">
+              <div class="allocation-meta">
+                <span class="allocation-label" [attr.title]="allocationTooltip(item.label, 'sector')">{{ formatAllocationLabel(item.label, 'sector') }}</span>
+                <strong class="allocation-percent">{{ item.percentage.toFixed(1) }}%</strong>
+              </div>
+              <div class="bar-track"><i class="bar-fill" [style.width]="barWidth(item.percentage)"></i></div>
+            </div>
+          </div>
+          <div class="analysis-commodity" *ngIf="commoditySectorSlices(data.sectorExposure).length > 0">
+            <strong>Commodity exposure</strong>
+            <div class="allocation-row compact" *ngFor="let item of commoditySectorSlices(data.sectorExposure); trackBy: trackByLabel">
+              <div class="allocation-meta">
+                <span class="allocation-label">{{ item.label }}</span>
+                <strong class="allocation-percent">{{ item.percentage.toFixed(1) }}%</strong>
+              </div>
+              <div class="bar-track"><i class="bar-fill commodity" [style.width]="barWidth(item.percentage)"></i></div>
+            </div>
+          </div>
+          <div class="analysis-unclassified" *ngFor="let item of unclassifiedSlices(data.sectorExposure)">
+            <strong>{{ formatAllocationLabel(item.label, 'sector') }}</strong>
+            <span>{{ item.percentage.toFixed(1) }}%</span>
+            <p>This percentage includes holdings that could not be classified due to missing provider data or incomplete ETF look-through metadata.</p>
+            <div class="analysis-issues compact" *ngIf="data.sectorDataQuality.affectedEtfs.length > 0">
+              <div class="analysis-issue" *ngFor="let issue of data.sectorDataQuality.affectedEtfs">
+                <div>
+                  <span>{{ issue.ticker }}</span>
+                  <em>{{ issue.unclassifiedPortfolioPercentage.toFixed(1) }}% sin clasificar · fuente {{ issue.sourceType }}</em>
+                </div>
+                <p>{{ issue.reason }}</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="analysis-card interactive-panel" id="country-panel" [class.expanded]="analyticsExpanded.country" [class.section-focused]="isFocusedSection('country-panel')">
+          <div class="analysis-card-head">
+            <div>
+              <h3>Geografia</h3>
+              <p>{{ analyticsSectionCount(data.countryExposure) }} categorias disponibles</p>
+            </div>
+            <button class="analysis-toggle" type="button" *ngIf="shouldShowAnalyticsToggle(data.countryExposure)" (click)="toggleAnalyticsSection('country')">
+              {{ analyticsExpanded.country ? 'Ver menos' : 'Ver toda' }}
+            </button>
+          </div>
+          <div class="analysis-quality" *ngIf="data.countryDataQuality as quality">
+            <span>Cobertura geografia: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
+            <span>Look-through real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
+            <span>Datos estimados: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
+          </div>
+          <div class="analysis-warning" *ngIf="dataQualityWarning('geography', data.countryDataQuality) as warning">
+            <strong>Warning</strong>
+            <p>{{ warning }}</p>
+          </div>
+          <div class="analysis-scroll">
+            <div class="allocation-row" *ngFor="let item of visibleSlices('country', data.countryExposure); trackBy: trackByLabel">
+              <div class="allocation-meta">
+                <span class="allocation-label" [attr.title]="allocationTooltip(item.label, 'country')">{{ formatAllocationLabel(item.label, 'country') }}</span>
+                <strong class="allocation-percent">{{ item.percentage.toFixed(1) }}%</strong>
+              </div>
+              <div class="bar-track"><i class="bar-fill" [style.width]="barWidth(item.percentage)"></i></div>
+            </div>
+          </div>
+          <div class="analysis-unclassified" *ngFor="let item of unclassifiedSlices(data.countryExposure)">
+            <strong>{{ formatAllocationLabel(item.label, 'country') }}</strong>
+            <span>{{ item.percentage.toFixed(1) }}%</span>
+            <p>Esta parte no pudo asignarse a un pais o region concreta con los datos del proveedor.</p>
+            <div class="analysis-issues compact" *ngIf="data.countryDataQuality.affectedEtfs.length > 0">
+              <div class="analysis-issue" *ngFor="let issue of data.countryDataQuality.affectedEtfs">
+                <div>
+                  <span>{{ issue.ticker }}</span>
+                  <em>{{ issue.unclassifiedPortfolioPercentage.toFixed(1) }}% sin clasificar · fuente {{ issue.sourceType }}</em>
+                </div>
+                <p>{{ issue.reason }}</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="analysis-card interactive-panel" id="etf-panel" [class.expanded]="analyticsExpanded.etf" [class.section-focused]="isFocusedSection('etf-panel')">
+          <div class="analysis-card-head">
+            <div>
+              <h3>ETFs</h3>
+              <p>{{ analyticsSectionCount(data.etfAllocation) }} posiciones disponibles</p>
+            </div>
+            <button class="analysis-toggle" type="button" *ngIf="shouldShowAnalyticsToggle(data.etfAllocation)" (click)="toggleAnalyticsSection('etf')">
+              {{ analyticsExpanded.etf ? 'Ver menos' : 'Ver todas' }}
+            </button>
+          </div>
+          <div class="analysis-scroll">
+            <div class="allocation-row" *ngFor="let item of visibleSlices('etf', data.etfAllocation); trackBy: trackByLabel">
+              <div class="allocation-meta">
+                <span class="allocation-label" [attr.title]="item.label">{{ item.label }}</span>
+                <strong class="allocation-percent">{{ item.percentage.toFixed(1) }}%</strong>
+              </div>
+              <div class="bar-track"><i class="bar-fill" [style.width]="barWidth(item.percentage)"></i></div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </ng-template>
+
+  <!-- Error State -->
+  <section class="section" *ngIf="service.error() as err">
+    <div class="empty-state">
+      <span class="empty-icon" style="font-size: 2rem;">⚠️</span>
+      <p>{{ err }}</p>
+    </div>
+  </section>
+
+  <section class="section" *ngIf="service.notice() as notice">
+    <div class="empty-state">
+      <span class="empty-icon" style="font-size: 2rem;">ℹ️</span>
+      <p>{{ notice }}</p>
+    </div>
+  </section>
+
+  <!-- Watchlist -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Watchlist</h2>
+      <span class="badge">{{ service.favorites().length }}</span>
+    </div>
+    <div class="favorites-list">
+      <ng-container *ngIf="service.favorites().length === 0">
+        <p class="empty-state-sm">Click the ★ next to any ETF to add it to your watchlist.</p>
+      </ng-container>
+      <div class="fav-chip" *ngFor="let ticker of service.favorites()" (click)="selectETF(ticker)">
+        <span class="fav-ticker">{{ ticker }}</span>
+        <button class="btn-fav-remove" (click)="$event.stopPropagation(); service.toggleFavorite(ticker)" title="Remove from watchlist">×</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Search -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Add ETF</h2>
+    </div>
+    <div class="search-container">
+      <input type="text" placeholder="Type a ticker (e.g. SPY, VOO) or name…" autocomplete="off" aria-label="Search ETFs"
+             (input)="onSearchInput($any($event.target).value)" (focus)="onSearchFocus()" (keydown)="onSearchKeydown($event)">
+      <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.375rem;">Press Enter to try any ticker directly</p>
+
+      <!-- Suggestions -->
+      <div class="search-results" [class.open]="searchOpen && service.searchResults().length > 0">
+        <div class="search-item" *ngFor="let r of service.searchResults(); let i = index"
+             [class.highlighted]="i === activeSearchIndex"
+             [class.selected]="isSelected(r.ticker)"
+             [class.disabled]="(isMaxedOut()) && !isSelected(r.ticker)">
+          <div class="search-item-info">
+            <span class="search-ticker">{{ r.ticker }}</span>
+            <span class="search-name">{{ r.name }}</span>
+          </div>
+          <div class="search-item-actions">
+            <button class="btn-fav" [class.active]="service.isFavorite(r.ticker)" (click)="$event.stopPropagation(); service.toggleFavorite(r.ticker);" title="Toggle watchlist">★</button>
+            <ng-container *ngIf="isSelected(r.ticker); else addBtn">
+              <span class="search-check">✓ In comparison</span>
+            </ng-container>
+            <ng-template #addBtn>
+              <button class="btn-add" [disabled]="isMaxedOut() || service.isTickerPending(r.ticker)" (click)="$event.stopPropagation(); selectETF(r.ticker)">
+                <ng-container *ngIf="service.isTickerPending(r.ticker); else addLabel">⏳</ng-container>
+                <ng-template #addLabel>+ Compare</ng-template>
+              </button>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <!-- No results -->
+      <div *ngIf="searchOpen && service.searchQuery().trim().length >= 1 && service.searchResults().length === 0" class="search-results open">
+        <div class="search-empty">
+          Not in the list. Press <strong>Enter</strong> to try "{{ service.searchQuery().trim().toUpperCase() }}" directly.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Selected ETFs -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Comparison</h2>
+      <span class="badge">{{ service.selectedETFs().length }}/{{ MAX_COMPARE }}</span>
+      <button class="btn-link" *ngIf="service.selectedETFs().length > 0" (click)="service.clearSelection()">Clear all</button>
+    </div>
+    <div class="selected-etfs">
+      <ng-container *ngIf="service.selectedETFs().length === 0">
+        <p class="empty-state-sm">Search and select ETFs above to start comparing.</p>
+      </ng-container>
+      <div class="selected-card" *ngFor="let etf of service.selectedETFs(); trackBy: trackByTicker">
+        <div class="selected-card-header">
+          <span class="selected-ticker" [style.color]="service.getETFColor(etf.ticker)">{{ etf.ticker }}</span>
+          <button class="btn-remove" (click)="service.removeETF(etf.ticker)" title="Remove from comparison">×</button>
+        </div>
+        <div class="selected-card-body">
+          <div class="selected-name">{{ etf.name }}</div>
+          <div class="selected-detail">{{ service.formatText(etf.region) }} · {{ service.formatText(etf.assetClass) }}</div>
+          <div class="selected-detail">TER: {{ service.formatTER(etf.ter) }} · {{ service.formatText(etf.distributionPolicy) }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Table -->
+  <section class="section">
+    <ng-container *ngIf="service.selectedETFs().length < 2">
+      <div class="empty-state">
+        <span class="empty-icon">⇄</span>
+        <p>Select 2–4 ETFs to see a side-by-side comparison.</p>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="service.selectedETFs().length >= 2">
+      <div class="table-wrapper">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Attribute</th>
+               <th *ngFor="let etf of service.selectedETFs(); trackBy: trackByTicker" [style.borderTop]="'3px solid ' + service.getETFColor(etf.ticker)">
+                {{ etf.ticker }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of comparisonRows()">
+              <td class="row-label">{{ row.label }}</td>
+              <td *ngFor="let val of row.values"
+                  [class.cell-best]="val.isBest"
+                  [class.perf-positive]="val.perfClass === 'perf-positive'"
+                  [class.perf-negative]="val.perfClass === 'perf-negative'">
+                {{ val.text }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">Values highlighted in green are the best among the selected ETFs.</p>
+    </ng-container>
+  </section>
+
+  <!-- SVG Line Chart -->
+  <section class="section" *ngIf="service.selectedETFs().length >= 2">
+    <h2 style="margin-bottom: 0.5rem;">Performance Comparison</h2>
+    <ng-container *ngIf="chartData() as data; else noChartData">
+    <div class="chart-wrapper">
+      <svg [attr.viewBox]="viewBox" class="chart-svg" preserveAspectRatio="xMidYMid meet">
+        <line *ngFor="let lbl of yAxisLabels()" [attr.x1]="50" [attr.x2]="480" [attr.y1]="lbl.y" [attr.y2]="lbl.y"
+              stroke="#e5e7eb" stroke-dasharray="4,3" stroke-width="1"/>
+        <text *ngFor="let lbl of yAxisLabels()" x="44" [attr.y]="lbl.y + 4" text-anchor="end"
+              font-size="11" fill="#9ca3af">{{ lbl.value }}%</text>
+
+         <line *ngIf="zeroLineY() !== null"
+               [attr.x1]="50" [attr.x2]="480"
+               [attr.y1]="zeroLineY()" [attr.y2]="zeroLineY()"
+               stroke="#d1d5db" stroke-width="1.5"/>
+
+        <polyline *ngFor="let line of data.lines"
+                  [attr.points]="getLinePoints(line)"
+                  [attr.stroke]="line.color"
+                  fill="none" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
+                  class="chart-line"/>
+         <circle *ngFor="let pt of chartDots()"
+                 [attr.cx]="pt.x" [attr.cy]="pt.y" r="5" [attr.fill]="pt.color"
+                 class="chart-dot"/>
+         <text *ngFor="let pt of chartDots()"
+               [attr.x]="pt.x" [attr.y]="pt.y - 12" text-anchor="middle"
+               font-size="10" font-weight="700" [attr.fill]="pt.color"
+               class="chart-label">{{ service.formatPerformance(pt.val) }}</text>
+
+        <text *ngFor="let period of chartPeriods()" [attr.x]="data.xPositions[period]" y="260"
+              text-anchor="middle" font-size="12" font-weight="600" fill="#636e72">{{ periodLabelMap[period] }}</text>
+      </svg>
+
+      <div class="chart-legend">
+         <div class="legend-item" *ngFor="let etf of service.selectedETFs(); trackBy: trackByTicker">
+           <span class="legend-color" [style.background]="service.getETFColor(etf.ticker)"></span>
+           {{ etf.ticker }}
+         </div>
+      </div>
+    </div>
+    </ng-container>
+    <ng-template #noChartData>
+      <div class="empty-state">
+        <span class="empty-icon">📉</span>
+        <p>No hay performance historica disponible con el proveedor actual para los ETFs seleccionados.</p>
+      </div>
+    </ng-template>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p><strong>Disclaimer:</strong> This is an educational demo. All data shown is for illustration purposes only and does not represent real financial advice. Past performance is not indicative of future results.</p>
+</footer>

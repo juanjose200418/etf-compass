@@ -1,0 +1,60 @@
+# Compiled output
+dist/
+tmp/
+out-tsc/
+bazel-out/
+target/
+*.class
+*.jar
+*.war
+
+# Dependencies
+node_modules/
+
+# Angular
+.angular/cache/
+
+# Environment and secrets
+.env
+*.env
+.env.local
+.env.production
+application-local.yml
+application-secret.yml
+*.key
+*.pem
+
+# Logs
+logs/
+*.log
+npm-debug.log
+yarn-error.log
+testem.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/
+.history/
+
+# Local tooling
+.agents/
+.opencode/
+skills-lock.json
+1
+
+# Miscellaneous
+.sass-cache/
+connect.lock
+coverage/
+libpeerconnection.log
+typings/
+
+# System files
+.DS_Store
+Thumbs.db
