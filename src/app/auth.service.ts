@@ -1,18 +1,19 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { map, tap } from 'rxjs';
+import { map } from 'rxjs';
 import { buildApiUrl } from './api-url';
 import { ApiResponse, AuthResponse, UserResponse } from './api.types';
 
-const TOKEN_KEY = 'etf-compass-access-token';
-const USER_KEY = 'etf-compass-user';
+export interface AuthResult {
+  authenticated: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
 
-  readonly token = signal<string | null>(this.loadToken());
-  readonly user = signal<UserResponse | null>(this.loadUser());
+  readonly token = signal<string | null>(null);
+  readonly user = signal<UserResponse | null>(null);
   readonly isAuthenticated = computed(() => !!this.token() && !!this.user() && !this.isTokenExpired(this.token()));
 
   login(email: string, password: string) {
@@ -24,15 +25,24 @@ export class AuthService {
           hasToken: !!res.data?.accessToken,
           hasUser: !!res.data?.user
         });
-        return this.requireAuthPayload(res);
-      }),
-      tap(auth => this.setSession(auth))
+        const auth = this.requireAuthPayload(res);
+        this.setSession(auth.accessToken, auth.user);
+        return { authenticated: true } satisfies AuthResult;
+      })
     );
   }
 
   register(email: string, password: string, displayName: string) {
     return this.http.post<ApiResponse<AuthResponse>>(buildApiUrl('/auth/register'), { email, password, displayName }).pipe(
-      map(() => void 0)
+      map(res => {
+        const auth = this.readAuthPayload(res);
+        if (!auth) {
+          return { authenticated: false } satisfies AuthResult;
+        }
+
+        this.setSession(auth.accessToken, auth.user);
+        return { authenticated: true } satisfies AuthResult;
+      })
     );
   }
 
@@ -49,7 +59,6 @@ export class AuthService {
   }
 
   logout(): void {
-    this.clearStoredSession();
     this.token.set(null);
     this.user.set(null);
   }
@@ -85,81 +94,30 @@ export class AuthService {
     }
   }
 
-  private setSession(auth: AuthResponse): void {
-    this.writeStoredValue(TOKEN_KEY, auth.accessToken);
-    this.writeStoredValue(USER_KEY, JSON.stringify(auth.user));
-    this.token.set(auth.accessToken);
-    this.user.set(auth.user);
-    console.log('Token exists:', !!auth.accessToken);
+  setSession(token: string, user: UserResponse): void {
+    if (!token?.trim()) {
+      throw new Error('AUTH_RESPONSE_INVALID');
+    }
+
+    this.token.set(token);
+    this.user.set(user);
+    console.log('Token exists:', !!token);
   }
 
   private requireAuthPayload(response: ApiResponse<AuthResponse>): AuthResponse {
-    const auth = response.data;
-    if (!auth?.accessToken || !auth?.user) {
+    const auth = this.readAuthPayload(response);
+    if (!auth) {
       throw new Error('AUTH_RESPONSE_INVALID');
     }
     return auth;
   }
 
-  private loadUser(): UserResponse | null {
-    const token = this.loadToken();
-    if (!token) return null;
-    const saved = this.readStoredValue(USER_KEY);
-    if (!saved) return null;
-    try {
-      return JSON.parse(saved) as UserResponse;
-    } catch {
-      this.removeStoredValue(USER_KEY);
+  private readAuthPayload(response: ApiResponse<AuthResponse>): AuthResponse | null {
+    const auth = response.data;
+    if (!auth?.accessToken || !auth?.user) {
       return null;
     }
-  }
-
-  private loadToken(): string | null {
-    const token = this.readStoredValue(TOKEN_KEY);
-    if (!token || this.isTokenExpired(token)) {
-      this.clearStoredSession();
-      return null;
-    }
-    return token;
-  }
-
-  private readStoredValue(key: string): string | null {
-    const local = this.localStorage();
-    const localValue = local?.getItem(key) ?? null;
-    if (localValue != null) {
-      return localValue;
-    }
-
-    const legacySession = this.legacySessionStorage();
-    const sessionValue = legacySession?.getItem(key) ?? null;
-    if (sessionValue != null && local) {
-      local.setItem(key, sessionValue);
-      legacySession?.removeItem(key);
-    }
-    return sessionValue;
-  }
-
-  private writeStoredValue(key: string, value: string): void {
-    this.localStorage()?.setItem(key, value);
-    this.legacySessionStorage()?.removeItem(key);
-  }
-
-  private removeStoredValue(key: string): void {
-    this.localStorage()?.removeItem(key);
-    this.legacySessionStorage()?.removeItem(key);
-  }
-
-  private clearStoredSession(): void {
-    this.removeStoredValue(TOKEN_KEY);
-    this.removeStoredValue(USER_KEY);
-  }
-
-  private localStorage(): Storage | null {
-    return typeof window === 'undefined' ? null : window.localStorage;
-  }
-
-  private legacySessionStorage(): Storage | null {
-    return typeof window === 'undefined' ? null : window.sessionStorage;
+    return auth;
   }
 
   private isTokenExpired(token: string | null): boolean {

@@ -7,7 +7,7 @@
     </div>
     <div class="header-actions">
       <button class="ad-button" type="button" (click)="openPromo()">Ver anuncio</button>
-      <div class="session-pill" *ngIf="currentUser() as user">
+      <div class="session-pill" *ngIf="isAuthenticated() && currentUser() as user">
         <span>{{ user.displayName }}</span>
         <button class="btn-ghost" (click)="logout()">Salir</button>
       </div>
@@ -28,85 +28,7 @@
 
 <main class="main">
 
-  <!-- Auth / Portfolio Hub -->
-  <section class="terminal-hero" *ngIf="!isAuthenticated(); else portfolioHub">
-    <div class="hero-copy">
-      <span class="eyebrow">Getquin-style ETF analytics</span>
-      <h2>Introduce tus ETFs y entiende en que industrias inviertes.</h2>
-      <p>
-        Inicia sesion para desbloquear dashboard financiero, exposicion por sector, industria, pais, divisa y posiciones con mejor/peor rendimiento.
-      </p>
-      <div class="hero-metrics">
-        <span>JWT seguro</span>
-        <span>Entrada manual ETF</span>
-        <span>Analisis ETF</span>
-      </div>
-    </div>
-
-    <div class="auth-card">
-      <div class="auth-tabs">
-        <button type="button" [class.active]="authMode === 'login'" (click)="setAuthMode('login')">Entrar</button>
-        <button type="button" [class.active]="authMode === 'register'" (click)="setAuthMode('register')">Crear cuenta</button>
-        <button type="button" [class.active]="authMode === 'recover'" (click)="setAuthMode('recover')">Recuperar</button>
-      </div>
-
-      <label *ngIf="authMode === 'register'">
-        Nombre
-        <input type="text" [value]="authDisplayName" (input)="authDisplayName = $any($event.target).value" placeholder="Juan Jose" (keydown.enter)="submitAuth()">
-      </label>
-      <label>
-        Email
-        <input type="email" [value]="authEmail" (input)="authEmail = $any($event.target).value" placeholder="tu@email.com" (keydown.enter)="authMode === 'recover' && authResetStep === 'request' ? requestPasswordResetCode() : submitAuth()">
-      </label>
-
-      <label *ngIf="authMode !== 'recover'">
-        Password
-        <input type="password" [value]="authPassword" (input)="authPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="submitAuth()">
-      </label>
-
-      <p class="auth-helper" *ngIf="authMode === 'register'">
-        Puedes dejar el nombre vacio y usaremos un alias limpio basado en tu email.
-      </p>
-
-      <ng-container *ngIf="authMode === 'recover'">
-        <p class="auth-helper">
-          {{ authResetStep === 'request'
-            ? 'Te enviaremos un codigo temporal para confirmar que eres tu.'
-            : 'Introduce el codigo recibido por correo y define una nueva password.' }}
-        </p>
-
-        <label *ngIf="authResetStep === 'confirm'">
-          Codigo de verificacion
-          <input type="text" inputmode="numeric" maxlength="6" [value]="authResetCode" (input)="authResetCode = $any($event.target).value" placeholder="123456" (keydown.enter)="confirmPasswordReset()">
-        </label>
-
-        <label *ngIf="authResetStep === 'confirm'">
-          Nueva password
-          <input type="password" [value]="authResetPassword" (input)="authResetPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="confirmPasswordReset()">
-        </label>
-      </ng-container>
-
-      <p class="form-error" *ngIf="authError">{{ authError }}</p>
-      <p class="form-success" *ngIf="authMessage">{{ authMessage }}</p>
-      <button class="btn-primary-wide" [disabled]="authLoading" (click)="submitAuth()">
-        {{ authLoading
-          ? (authMode === 'recover' ? 'Procesando...' : 'Conectando...')
-          : (authMode === 'login'
-            ? 'Iniciar sesion'
-            : authMode === 'register'
-              ? 'Crear cuenta y volver a login'
-              : authResetStep === 'request'
-                ? 'Enviar codigo'
-                : 'Cambiar password') }}
-      </button>
-
-      <button class="btn-text-link" type="button" *ngIf="authMode === 'login'" (click)="setAuthMode('recover')">
-        He olvidado mi password
-      </button>
-    </div>
-  </section>
-
-  <ng-template #portfolioHub>
+  <ng-container *ngIf="isDashboardRoute(); else publicRoute">
     <section class="portfolio-shell">
       <div class="portfolio-topbar">
         <div>
@@ -399,7 +321,87 @@
         </article>
       </div>
     </section>
-  </ng-template>
+  </ng-container>
+
+  <ng-template #publicRoute>
+  <!-- Auth / Landing -->
+  <section class="terminal-hero" *ngIf="!isAuthenticated()">
+    <div class="hero-copy">
+      <span class="eyebrow">Getquin-style ETF analytics</span>
+      <h2>Introduce tus ETFs y entiende en que industrias inviertes.</h2>
+      <p>
+        Inicia sesion para desbloquear dashboard financiero, exposicion por sector, industria, pais, divisa y posiciones con mejor/peor rendimiento.
+      </p>
+      <div class="hero-metrics">
+        <span>JWT seguro</span>
+        <span>Entrada manual ETF</span>
+        <span>Analisis ETF</span>
+      </div>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button type="button" [class.active]="authMode === 'login'" (click)="setAuthMode('login')">Entrar</button>
+        <button type="button" [class.active]="authMode === 'register'" (click)="setAuthMode('register')">Crear cuenta</button>
+        <button type="button" [class.active]="authMode === 'recover'" (click)="setAuthMode('recover')">Recuperar</button>
+      </div>
+
+      <label *ngIf="authMode === 'register'">
+        Nombre
+        <input type="text" [value]="authDisplayName" (input)="authDisplayName = $any($event.target).value" placeholder="Juan Jose" (keydown.enter)="submitAuth()">
+      </label>
+      <label>
+        Email
+        <input type="email" [value]="authEmail" (input)="authEmail = $any($event.target).value" placeholder="tu@email.com" (keydown.enter)="authMode === 'recover' && authResetStep === 'request' ? requestPasswordResetCode() : submitAuth()">
+      </label>
+
+      <label *ngIf="authMode !== 'recover'">
+        Password
+        <input type="password" [value]="authPassword" (input)="authPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="submitAuth()">
+      </label>
+
+      <p class="auth-helper" *ngIf="authMode === 'register'">
+        Puedes dejar el nombre vacio y usaremos un alias limpio basado en tu email.
+      </p>
+
+      <ng-container *ngIf="authMode === 'recover'">
+        <p class="auth-helper">
+          {{ authResetStep === 'request'
+            ? 'Te enviaremos un codigo temporal para confirmar que eres tu.'
+            : 'Introduce el codigo recibido por correo y define una nueva password.' }}
+        </p>
+
+        <label *ngIf="authResetStep === 'confirm'">
+          Codigo de verificacion
+          <input type="text" inputmode="numeric" maxlength="6" [value]="authResetCode" (input)="authResetCode = $any($event.target).value" placeholder="123456" (keydown.enter)="confirmPasswordReset()">
+        </label>
+
+        <label *ngIf="authResetStep === 'confirm'">
+          Nueva password
+          <input type="password" [value]="authResetPassword" (input)="authResetPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="confirmPasswordReset()">
+        </label>
+      </ng-container>
+
+      <p class="form-error" *ngIf="authError">{{ authError }}</p>
+      <p class="form-success" *ngIf="authMessage">{{ authMessage }}</p>
+      <button class="btn-primary-wide" [disabled]="authLoading" (click)="submitAuth()">
+        {{ authLoading
+          ? (authMode === 'recover' ? 'Procesando...' : 'Conectando...')
+          : (authMode === 'login'
+            ? 'Iniciar sesion'
+            : authMode === 'register'
+              ? 'Crear cuenta'
+              : authResetStep === 'request'
+                ? 'Enviar codigo'
+                : 'Cambiar password') }}
+      </button>
+
+      <button class="btn-text-link" type="button" *ngIf="authMode === 'login'" (click)="setAuthMode('recover')">
+        He olvidado mi password
+      </button>
+    </div>
+  </section>
+  
 
   <!-- Error State -->
   <section class="section" *ngIf="service.error() as err">
@@ -586,6 +588,7 @@
       </div>
     </ng-template>
   </section>
+  </ng-template>
 
 </main>
 

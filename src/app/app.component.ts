@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Observable } from 'rxjs';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router } from '@angular/router';
+import { Observable, filter, map, startWith } from 'rxjs';
 import { EtfService } from './etf.service';
 import { ETF } from './types';
-import { AuthService } from './auth.service';
+import { AuthResult, AuthService } from './auth.service';
 import { PortfolioApiService } from './portfolio-api.service';
 import { AllocationSliceResponse, DashboardResponse, PortfolioAnalyticsResponse, PortfolioResponse, PositionResponse } from './api.types';
 
@@ -51,6 +53,7 @@ export class AppComponent implements OnInit {
   service = inject(EtfService);
   auth = inject(AuthService);
   private portfolioApi = inject(PortfolioApiService);
+  private router = inject(Router);
 
   readonly periods = ['1Y', '3Y', '5Y'] as const;
   readonly periodLabelMap: Record<'1Y' | '3Y' | '5Y', string> = {
@@ -95,8 +98,17 @@ export class AppComponent implements OnInit {
   readonly activePortfolioId = signal<string | null>(null);
   readonly dashboard = signal<DashboardResponse | null>(null);
   readonly analytics = signal<PortfolioAnalyticsResponse | null>(null);
+  readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map(() => this.router.url),
+      startWith(this.router.url)
+    ),
+    { initialValue: this.router.url }
+  );
   readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
   readonly currentUser = computed(() => this.auth.user());
+  readonly isDashboardRoute = computed(() => this.currentUrl() === '/dashboard');
   readonly activePortfolio = computed(() => this.portfolios().find(p => p.id === this.activePortfolioId()) ?? null);
   readonly selectedTickers = computed(() => new Set(this.service.selectedETFs().map(etf => etf.ticker)));
   readonly manualRows = signal<ManualInvestmentRow[]>([
@@ -243,9 +255,18 @@ export class AppComponent implements OnInit {
   private readonly moneyFormatters = new Map<string, Intl.NumberFormat>();
 
   ngOnInit(): void {
-    if (this.isAuthenticated()) {
+    if (this.isDashboardRoute() && this.isAuthenticated()) {
       this.refreshPortfolioData();
     }
+
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      takeUntilDestroyed()
+    ).subscribe(() => {
+      if (this.isDashboardRoute() && this.isAuthenticated() && this.portfolios().length === 0 && !this.portfolioLoading) {
+        this.refreshPortfolioData();
+      }
+    });
   }
 
   setAuthMode(mode: AuthMode): void {
@@ -278,15 +299,17 @@ export class AppComponent implements OnInit {
     this.authLoading = true;
     this.clearAuthFeedback();
     const normalizedEmail = this.authEmail.trim();
-    const request$: Observable<unknown> = this.authMode === 'login'
+    const request$: Observable<AuthResult> = this.authMode === 'login'
       ? this.auth.login(normalizedEmail, this.authPassword)
       : this.auth.register(normalizedEmail, this.authPassword, this.buildRegisterDisplayName(normalizedEmail));
 
     request$.subscribe({
-      next: () => {
+      next: ({ authenticated }) => {
         this.authLoading = false;
         this.authPassword = '';
-        if (this.authMode === 'register') {
+        console.log('Authenticated:', authenticated && this.isAuthenticated());
+
+        if (!authenticated && this.authMode === 'register') {
           this.authDisplayName = '';
           this.authMode = 'login';
           this.authMessage = 'Cuenta creada correctamente. Ahora inicia sesion con tu email y password.';
@@ -294,8 +317,7 @@ export class AppComponent implements OnInit {
         }
 
         this.authMessage = null;
-        console.log('Authenticated:', this.isAuthenticated());
-        this.refreshPortfolioData();
+        this.router.navigate(['/dashboard']).then(() => this.refreshPortfolioData());
       },
       error: (err: unknown) => {
         this.authLoading = false;
@@ -363,10 +385,11 @@ export class AppComponent implements OnInit {
     this.activePortfolioId.set(null);
     this.dashboard.set(null);
     this.analytics.set(null);
+    this.router.navigate(['/']);
   }
 
   refreshPortfolioData(): void {
-    if (!this.isAuthenticated()) {
+    if (!this.isAuthenticated() || !this.isDashboardRoute()) {
       this.portfolioLoading = false;
       return;
     }
@@ -482,7 +505,7 @@ export class AppComponent implements OnInit {
   }
 
   loadDashboard(): void {
-    if (!this.isAuthenticated()) {
+    if (!this.isAuthenticated() || !this.isDashboardRoute()) {
       this.dashboard.set(null);
       return;
     }
@@ -494,7 +517,7 @@ export class AppComponent implements OnInit {
   }
 
   loadAnalytics(): void {
-    if (!this.isAuthenticated()) {
+    if (!this.isAuthenticated() || !this.isDashboardRoute()) {
       this.analytics.set(null);
       return;
     }
