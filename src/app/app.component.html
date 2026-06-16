@@ -402,7 +402,9 @@
           </div>
         </div>
 
-        <ng-container [ngTemplateOutlet]="etfExplorerTemplate"></ng-container>
+        <div class="dashboard-explorer-body">
+          <ng-container [ngTemplateOutlet]="etfExplorerTemplate"></ng-container>
+        </div>
       </section>
     </section>
   </ng-container>
@@ -508,223 +510,217 @@
     </div>
   </section>
 
+  </ng-template>
+
   <ng-template #etfExplorerTemplate>
-  <!-- Watchlist -->
-  <section class="section">
-    <div class="section-header">
-      <h2>Watchlist</h2>
-      <span class="badge">{{ service.favorites().length }}</span>
-    </div>
-    <div class="favorites-list">
-      <ng-container *ngIf="service.favorites().length === 0">
-        <p class="empty-state-sm">Click the ★ next to any ETF to add it to your watchlist.</p>
-      </ng-container>
-      <div class="fav-chip" *ngFor="let ticker of service.favorites()" (click)="selectETF(ticker)">
-        <span class="fav-ticker">{{ ticker }}</span>
-        <button class="btn-fav-remove" (click)="$event.stopPropagation(); service.toggleFavorite(ticker)" title="Remove from watchlist">×</button>
+    <section class="section">
+      <div class="section-header">
+        <h2>Watchlist</h2>
+        <span class="badge">{{ service.favorites().length }}</span>
       </div>
-    </div>
-  </section>
+      <div class="favorites-list">
+        <ng-container *ngIf="service.favorites().length === 0">
+          <p class="empty-state-sm">Click the ★ next to any ETF to add it to your watchlist.</p>
+        </ng-container>
+        <div class="fav-chip" *ngFor="let ticker of service.favorites()" (click)="selectETF(ticker)">
+          <span class="fav-ticker">{{ ticker }}</span>
+          <button class="btn-fav-remove" (click)="$event.stopPropagation(); service.toggleFavorite(ticker)" title="Remove from watchlist">×</button>
+        </div>
+      </div>
+    </section>
 
-  <!-- Search -->
-  <section class="section">
-    <div class="section-header">
-      <h2>Add ETF</h2>
-    </div>
-    <div class="search-container">
-      <input type="text" placeholder="Type a ticker (e.g. SPY, VOO) or name…" autocomplete="off" aria-label="Search ETFs"
-             (input)="onSearchInput($any($event.target).value)" (focus)="onSearchFocus()" (keydown)="onSearchKeydown($event)">
-      <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.375rem;">Press Enter to try any ticker directly</p>
+    <section class="section">
+      <div class="section-header">
+        <h2>Add ETF</h2>
+      </div>
+      <div class="search-container">
+        <input type="text" placeholder="Type a ticker (e.g. SPY, VOO) or name…" autocomplete="off" aria-label="Search ETFs"
+               (input)="onSearchInput($any($event.target).value)" (focus)="onSearchFocus()" (keydown)="onSearchKeydown($event)">
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.375rem;">Press Enter to try any ticker directly</p>
 
-      <!-- Suggestions -->
-      <div class="search-results" [class.open]="searchOpen && service.searchResults().length > 0">
-        <div class="search-item" *ngFor="let r of service.searchResults(); let i = index"
-             [class.highlighted]="i === activeSearchIndex"
-             [class.selected]="isSelected(r.ticker)"
-             [class.disabled]="(isMaxedOut()) && !isSelected(r.ticker)">
-          <div class="search-item-info">
-            <span class="search-ticker">{{ r.ticker }}</span>
-            <span class="search-name">{{ r.name }}</span>
-          </div>
-          <div class="search-item-actions">
-            <button class="btn-fav" [class.active]="service.isFavorite(r.ticker)" (click)="$event.stopPropagation(); service.toggleFavorite(r.ticker);" title="Toggle watchlist">★</button>
-            <ng-container *ngIf="isSelected(r.ticker); else addBtn">
-              <span class="search-check">✓ In comparison</span>
-            </ng-container>
-            <ng-template #addBtn>
-              <button class="btn-add" [disabled]="isMaxedOut() || service.isTickerPending(r.ticker)" (click)="$event.stopPropagation(); selectETF(r.ticker)">
-                <ng-container *ngIf="service.isTickerPending(r.ticker); else addLabel">⏳</ng-container>
-                <ng-template #addLabel>+ Compare</ng-template>
-              </button>
-            </ng-template>
+        <div class="search-results" [class.open]="searchOpen && service.searchResults().length > 0">
+          <div class="search-item" *ngFor="let r of service.searchResults(); let i = index"
+               [class.highlighted]="i === activeSearchIndex"
+               [class.selected]="isSelected(r.ticker)"
+               [class.disabled]="(isMaxedOut()) && !isSelected(r.ticker)">
+            <div class="search-item-info">
+              <span class="search-ticker">{{ r.ticker }}</span>
+              <span class="search-name">{{ r.name }}</span>
+            </div>
+            <div class="search-item-actions">
+              <button class="btn-fav" [class.active]="service.isFavorite(r.ticker)" (click)="$event.stopPropagation(); service.toggleFavorite(r.ticker);" title="Toggle watchlist">★</button>
+              <ng-container *ngIf="isSelected(r.ticker); else addBtn">
+                <span class="search-check">✓ In comparison</span>
+              </ng-container>
+              <ng-template #addBtn>
+                <button class="btn-add" [disabled]="isMaxedOut() || service.isTickerPending(r.ticker)" (click)="$event.stopPropagation(); selectETF(r.ticker)">
+                  <ng-container *ngIf="service.isTickerPending(r.ticker); else addLabel">⏳</ng-container>
+                  <ng-template #addLabel>+ Compare</ng-template>
+                </button>
+              </ng-template>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- No results -->
-      <div *ngIf="searchOpen && service.searchQuery().trim().length >= 1 && service.searchResults().length === 0" class="search-results open">
-        <div class="search-empty">
-          Not in the list. Press <strong>Enter</strong> to try "{{ service.searchQuery().trim().toUpperCase() }}" directly.
+        <div *ngIf="searchOpen && service.searchQuery().trim().length >= 1 && service.searchResults().length === 0" class="search-results open">
+          <div class="search-empty">
+            Not in the list. Press <strong>Enter</strong> to try "{{ service.searchQuery().trim().toUpperCase() }}" directly.
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Selected ETFs -->
-  <section class="section">
-    <div class="section-header">
-      <h2>Comparison</h2>
-      <span class="badge">{{ service.selectedETFs().length }}/{{ MAX_COMPARE }}</span>
-      <button class="btn-link" *ngIf="service.selectedETFs().length > 0" (click)="service.clearSelection()">Clear all</button>
-    </div>
-    <div class="selected-etfs">
-      <ng-container *ngIf="service.selectedETFs().length === 0">
-        <p class="empty-state-sm">Search and select ETFs above to start comparing.</p>
+    <section class="section">
+      <div class="section-header">
+        <h2>Comparison</h2>
+        <span class="badge">{{ service.selectedETFs().length }}/{{ MAX_COMPARE }}</span>
+        <button class="btn-link" *ngIf="service.selectedETFs().length > 0" (click)="service.clearSelection()">Clear all</button>
+      </div>
+      <div class="selected-etfs">
+        <ng-container *ngIf="service.selectedETFs().length === 0">
+          <p class="empty-state-sm">Anade ETFs desde la tabla para comenzar la comparacion.</p>
+        </ng-container>
+        <div class="selected-card" *ngFor="let etf of service.selectedETFs(); trackBy: trackByTicker">
+          <div class="selected-card-header">
+            <span class="selected-ticker" [style.color]="service.getETFColor(etf.ticker)">{{ etf.ticker }}</span>
+            <button class="btn-remove" (click)="service.removeETF(etf.ticker)" title="Remove from comparison">×</button>
+          </div>
+          <div class="selected-card-body">
+            <div class="selected-name">{{ etf.name }}</div>
+            <div class="selected-detail">{{ service.formatText(etf.region) }} · {{ service.formatText(etf.assetClass) }}</div>
+            <div class="selected-detail">TER: {{ service.formatTER(etf.ter) }} · {{ service.formatText(etf.distributionPolicy) }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <ng-container *ngIf="service.selectedETFs().length < 2">
+        <div class="empty-state">
+          <span class="empty-icon">⇄</span>
+          <p>Anade al menos 2 ETFs para ver la tabla comparativa.</p>
+        </div>
       </ng-container>
-      <div class="selected-card" *ngFor="let etf of service.selectedETFs(); trackBy: trackByTicker">
-        <div class="selected-card-header">
-          <span class="selected-ticker" [style.color]="service.getETFColor(etf.ticker)">{{ etf.ticker }}</span>
-          <button class="btn-remove" (click)="service.removeETF(etf.ticker)" title="Remove from comparison">×</button>
+      <ng-container *ngIf="service.selectedETFs().length >= 2">
+        <div class="table-wrapper">
+          <table class="comp-table">
+            <thead>
+              <tr>
+                <th>Attribute</th>
+                <th *ngFor="let etf of service.selectedETFs(); trackBy: trackByTicker" [style.borderTop]="'3px solid ' + service.getETFColor(etf.ticker)">
+                  {{ etf.ticker }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of comparisonRows()">
+                <td class="row-label">{{ row.label }}</td>
+                <td *ngFor="let val of row.values"
+                    [class.cell-best]="val.isBest"
+                    [class.perf-positive]="val.perfClass === 'perf-positive'"
+                    [class.perf-negative]="val.perfClass === 'perf-negative'">
+                  {{ val.text }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="selected-card-body">
-          <div class="selected-name">{{ etf.name }}</div>
-          <div class="selected-detail">{{ service.formatText(etf.region) }} · {{ service.formatText(etf.assetClass) }}</div>
-          <div class="selected-detail">TER: {{ service.formatTER(etf.ter) }} · {{ service.formatText(etf.distributionPolicy) }}</div>
-        </div>
-      </div>
-    </div>
-  </section>
+        <p class="table-note">Values highlighted in green are the best among the selected ETFs.</p>
+      </ng-container>
+    </section>
 
-  <!-- Comparison Table -->
-  <section class="section">
-    <ng-container *ngIf="service.selectedETFs().length < 2">
-      <div class="empty-state">
-        <span class="empty-icon">⇄</span>
-        <p>Select 2–4 ETFs to see a side-by-side comparison.</p>
+    <section class="section">
+      <div class="history-panel-head">
+        <div>
+          <h2>Historical ETF Comparison</h2>
+          <p>Compara el rendimiento relativo de cada ETF en porcentaje para que el precio absoluto no distorsione la lectura.</p>
+        </div>
+        <div class="history-range-switcher" role="tablist" aria-label="Seleccionar rango historico">
+          <button type="button" *ngFor="let range of historyRanges" [class.active]="comparisonHistoryRange() === range" (click)="setComparisonHistoryRange(range)">{{ range }}</button>
+        </div>
       </div>
-    </ng-container>
-    <ng-container *ngIf="service.selectedETFs().length >= 2">
-      <div class="table-wrapper">
-        <table class="comp-table">
+
+      <div class="history-compare-table" *ngIf="historyComparisonRows().length > 0">
+        <table>
           <thead>
             <tr>
-              <th>Attribute</th>
-               <th *ngFor="let etf of service.selectedETFs(); trackBy: trackByTicker" [style.borderTop]="'3px solid ' + service.getETFColor(etf.ticker)">
-                {{ etf.ticker }}
-              </th>
+              <th>ETF</th>
+              <th>Inicio</th>
+              <th>Actual</th>
+              <th>Variacion</th>
+              <th>Puntos</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of comparisonRows()">
-              <td class="row-label">{{ row.label }}</td>
-              <td *ngFor="let val of row.values"
-                  [class.cell-best]="val.isBest"
-                  [class.perf-positive]="val.perfClass === 'perf-positive'"
-                  [class.perf-negative]="val.perfClass === 'perf-negative'">
-                {{ val.text }}
+            <tr *ngFor="let row of historyComparisonRows()">
+              <td>
+                <span class="history-ticker-dot" [style.background]="row.color"></span>
+                {{ row.ticker }}
               </td>
+              <td>{{ row.startClose | number:'1.2-2' }}</td>
+              <td>{{ row.latestClose | number:'1.2-2' }}</td>
+              <td [class.perf-positive]="row.changePercent >= 0" [class.perf-negative]="row.changePercent < 0">
+                {{ row.changePercent >= 0 ? '+' : '' }}{{ row.changePercent | number:'1.2-2' }}%
+              </td>
+              <td>{{ row.points }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p class="table-note">Values highlighted in green are the best among the selected ETFs.</p>
-    </ng-container>
-  </section>
 
-  <!-- Historical Comparison Chart -->
-  <section class="section" *ngIf="service.selectedETFs().length >= 1">
-    <div class="history-panel-head">
-      <div>
-        <h2>Historical ETF Comparison</h2>
-        <p>Compara el rendimiento relativo de cada ETF en porcentaje para que el precio absoluto no distorsione la lectura.</p>
+      <div class="analysis-warning" *ngIf="comparisonHistoryWarnings().length > 0">
+        <strong>History warnings</strong>
+        <p *ngFor="let warning of comparisonHistoryWarnings()">{{ warning }}</p>
       </div>
-      <div class="history-range-switcher" role="tablist" aria-label="Seleccionar rango historico">
-        <button type="button" *ngFor="let range of historyRanges" [class.active]="comparisonHistoryRange() === range" (click)="setComparisonHistoryRange(range)">{{ range }}</button>
-      </div>
-    </div>
 
-    <div class="history-compare-table" *ngIf="historyComparisonRows().length > 0">
-      <table>
-        <thead>
-          <tr>
-            <th>ETF</th>
-            <th>Inicio</th>
-            <th>Actual</th>
-            <th>Variacion</th>
-            <th>Puntos</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of historyComparisonRows()">
-            <td>
-              <span class="history-ticker-dot" [style.background]="row.color"></span>
+      <div class="empty-state" *ngIf="comparisonHistoryLoading()">
+        <span class="empty-icon">⏳</span>
+        <p>Cargando historico de los ETFs seleccionados...</p>
+      </div>
+
+      <div class="empty-state" *ngIf="!comparisonHistoryLoading() && comparisonHistoryError() as historyError">
+        <span class="empty-icon">📉</span>
+        <p>{{ historyError }}</p>
+      </div>
+
+      <div class="empty-state" *ngIf="!comparisonHistoryLoading() && service.selectedETFs().length === 0">
+        <span class="empty-icon">⇄</span>
+        <p>Añade ETFs desde la tabla para comenzar la comparación.</p>
+      </div>
+
+      <ng-container *ngIf="!comparisonHistoryLoading() && historyChartData() as data">
+        <div class="chart-wrapper history-chart-wrapper">
+          <svg [attr.viewBox]="viewBox" class="chart-svg" preserveAspectRatio="xMidYMid meet">
+            <line *ngFor="let lbl of historyYAxisLabels()" [attr.x1]="68" [attr.x2]="470" [attr.y1]="lbl.y" [attr.y2]="lbl.y"
+                  stroke="#dbe4ef" stroke-dasharray="4,4" stroke-width="1"/>
+            <text *ngFor="let lbl of historyYAxisLabels()" x="58" [attr.y]="lbl.y + 4" text-anchor="end"
+                  font-size="11" fill="#94a3b8">{{ lbl.value }}%</text>
+
+            <polyline *ngFor="let line of data.lines"
+                      [attr.points]="getHistoryLinePoints(line)"
+                      [attr.stroke]="line.color"
+                      fill="none" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"
+                      class="chart-line"/>
+
+            <circle *ngFor="let pt of historyChartDots()"
+                    [attr.cx]="pt.x" [attr.cy]="pt.y" r="3.5" [attr.fill]="pt.color"
+                    class="chart-dot history-dot">
+              <title>{{ pt.ticker }} · {{ pt.date }} · {{ pt.close | number:'1.2-2' }} · {{ pt.percent >= 0 ? '+' : '' }}{{ pt.percent | number:'1.2-2' }}%</title>
+            </circle>
+
+            <text *ngFor="let label of historyXAxisLabels()" [attr.x]="label.x" y="258"
+                  text-anchor="middle" font-size="12" font-weight="700" fill="#64748b">{{ label.label }}</text>
+          </svg>
+
+          <div class="chart-legend">
+            <div class="legend-item" *ngFor="let row of historyComparisonRows()">
+              <span class="legend-color" [style.background]="row.color"></span>
               {{ row.ticker }}
-            </td>
-            <td>{{ row.startClose | number:'1.2-2' }}</td>
-            <td>{{ row.latestClose | number:'1.2-2' }}</td>
-            <td [class.perf-positive]="row.changePercent >= 0" [class.perf-negative]="row.changePercent < 0">
-              {{ row.changePercent >= 0 ? '+' : '' }}{{ row.changePercent | number:'1.2-2' }}%
-            </td>
-            <td>{{ row.points }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="analysis-warning" *ngIf="comparisonHistoryWarnings().length > 0">
-      <strong>History warnings</strong>
-      <p *ngFor="let warning of comparisonHistoryWarnings()">{{ warning }}</p>
-    </div>
-
-    <div class="empty-state" *ngIf="comparisonHistoryLoading()">
-      <span class="empty-icon">⏳</span>
-      <p>Cargando historico de los ETFs seleccionados...</p>
-    </div>
-
-    <div class="empty-state" *ngIf="!comparisonHistoryLoading() && comparisonHistoryError() as historyError">
-      <span class="empty-icon">📉</span>
-      <p>{{ historyError }}</p>
-    </div>
-
-    <div class="empty-state" *ngIf="!comparisonHistoryLoading() && service.selectedETFs().length === 0">
-      <span class="empty-icon">⇄</span>
-      <p>Selecciona uno o varios ETFs para activar la comparacion historica.</p>
-    </div>
-
-    <ng-container *ngIf="!comparisonHistoryLoading() && historyChartData() as data">
-      <div class="chart-wrapper history-chart-wrapper">
-        <svg [attr.viewBox]="viewBox" class="chart-svg" preserveAspectRatio="xMidYMid meet">
-          <line *ngFor="let lbl of historyYAxisLabels()" [attr.x1]="68" [attr.x2]="470" [attr.y1]="lbl.y" [attr.y2]="lbl.y"
-                stroke="#dbe4ef" stroke-dasharray="4,4" stroke-width="1"/>
-          <text *ngFor="let lbl of historyYAxisLabels()" x="58" [attr.y]="lbl.y + 4" text-anchor="end"
-                font-size="11" fill="#94a3b8">{{ lbl.value }}%</text>
-
-          <polyline *ngFor="let line of data.lines"
-                    [attr.points]="getHistoryLinePoints(line)"
-                    [attr.stroke]="line.color"
-                    fill="none" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"
-                    class="chart-line"/>
-
-          <circle *ngFor="let pt of historyChartDots()"
-                  [attr.cx]="pt.x" [attr.cy]="pt.y" r="3.5" [attr.fill]="pt.color"
-                  class="chart-dot history-dot">
-            <title>{{ pt.ticker }} · {{ pt.date }} · {{ pt.close | number:'1.2-2' }} · {{ pt.percent >= 0 ? '+' : '' }}{{ pt.percent | number:'1.2-2' }}%</title>
-          </circle>
-
-          <text *ngFor="let label of historyXAxisLabels()" [attr.x]="label.x" y="258"
-                text-anchor="middle" font-size="12" font-weight="700" fill="#64748b">{{ label.label }}</text>
-        </svg>
-
-        <div class="chart-legend">
-          <div class="legend-item" *ngFor="let row of historyComparisonRows()">
-            <span class="legend-color" [style.background]="row.color"></span>
-            {{ row.ticker }}
+            </div>
           </div>
         </div>
-      </div>
-    </ng-container>
-  </section>
-  </ng-template>
+      </ng-container>
+    </section>
   </ng-template>
 
 </main>
