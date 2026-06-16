@@ -17,15 +17,14 @@ export class AuthService {
 
   login(email: string, password: string) {
     return this.http.post<ApiResponse<AuthResponse>>(buildApiUrl('/auth/login'), { email, password }).pipe(
-      map(res => res.data),
+      map(res => this.requireAuthPayload(res)),
       tap(auth => this.setSession(auth))
     );
   }
 
   register(email: string, password: string, displayName: string) {
     return this.http.post<ApiResponse<AuthResponse>>(buildApiUrl('/auth/register'), { email, password, displayName }).pipe(
-      map(res => res.data),
-      tap(auth => this.setSession(auth))
+      map(() => void 0)
     );
   }
 
@@ -83,6 +82,14 @@ export class AuthService {
     this.writeStoredValue(USER_KEY, JSON.stringify(auth.user));
     this.token.set(auth.accessToken);
     this.user.set(auth.user);
+  }
+
+  private requireAuthPayload(response: ApiResponse<AuthResponse>): AuthResponse {
+    const auth = response.data;
+    if (!auth?.accessToken || !auth?.user) {
+      throw new Error('AUTH_RESPONSE_INVALID');
+    }
+    return auth;
   }
 
   private loadUser(): UserResponse | null {

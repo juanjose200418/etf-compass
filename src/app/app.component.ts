@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Observable } from 'rxjs';
 import { EtfService } from './etf.service';
 import { ETF } from './types';
 import { AuthService } from './auth.service';
@@ -275,19 +276,25 @@ export class AppComponent implements OnInit {
     this.authLoading = true;
     this.clearAuthFeedback();
     const normalizedEmail = this.authEmail.trim();
-    const request = this.authMode === 'login'
+    const request$: Observable<unknown> = this.authMode === 'login'
       ? this.auth.login(normalizedEmail, this.authPassword)
       : this.auth.register(normalizedEmail, this.authPassword, this.buildRegisterDisplayName(normalizedEmail));
 
-    request.subscribe({
+    request$.subscribe({
       next: () => {
         this.authLoading = false;
         this.authPassword = '';
-        this.authDisplayName = '';
+        if (this.authMode === 'register') {
+          this.authDisplayName = '';
+          this.authMode = 'login';
+          this.authMessage = 'Cuenta creada correctamente. Ahora inicia sesion con tu email y password.';
+          return;
+        }
+
         this.authMessage = null;
         this.refreshPortfolioData();
       },
-      error: err => {
+      error: (err: unknown) => {
         this.authLoading = false;
         this.authError = this.errorMessage(
           err,
@@ -356,6 +363,11 @@ export class AppComponent implements OnInit {
   }
 
   refreshPortfolioData(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.portfolioLoading = false;
+      return;
+    }
+
     this.portfolioLoading = true;
     this.portfolioError = null;
     this.portfolioApi.listPortfolios().subscribe({
@@ -467,6 +479,11 @@ export class AppComponent implements OnInit {
   }
 
   loadDashboard(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.dashboard.set(null);
+      return;
+    }
+
     this.portfolioApi.dashboard().subscribe({
       next: dashboard => this.dashboard.set(dashboard),
       error: err => this.handleProtectedError(err, 'No se pudo cargar el dashboard.')
@@ -474,6 +491,11 @@ export class AppComponent implements OnInit {
   }
 
   loadAnalytics(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.analytics.set(null);
+      return;
+    }
+
     const portfolioId = this.activePortfolioId();
     if (!portfolioId) {
       this.analytics.set(null);
@@ -649,7 +671,22 @@ export class AppComponent implements OnInit {
 
   private errorMessage(err: unknown, fallback: string): string {
     const apiMessage = (err as { error?: { message?: string } }).error?.message;
-    return apiMessage || fallback;
+    if (!apiMessage) {
+      return fallback;
+    }
+
+    switch (apiMessage) {
+      case 'Email is already registered':
+        return 'Este email ya está registrado. Inicia sesión o usa otro email.';
+      case 'Invalid email or password':
+      case 'Bad credentials':
+        return 'Email o contraseña incorrectos.';
+      case 'Authentication required':
+      case 'Authentication required or token expired':
+        return 'Necesitas iniciar sesión para continuar.';
+      default:
+        return apiMessage;
+    }
   }
 
   private validateAuthSubmission(): string | null {

@@ -1,4 +1,4 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { isApiUrl, isAuthUrl } from './api-url';
@@ -10,6 +10,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const isAuthRequest = isAuthUrl(req.url);
   const needsAuth = isApiRequest && !isAuthRequest;
   const token = needsAuth ? auth.getValidToken() : null;
+
+  if (needsAuth && !token) {
+    return throwError(() => new HttpErrorResponse({
+      status: 401,
+      error: { message: 'Authentication required' }
+    }));
+  }
 
   const authReq = token && !req.headers.has('Authorization')
     ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
