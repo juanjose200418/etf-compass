@@ -27,9 +27,14 @@ export class EtfService {
   readonly searchResults = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
     if (q.length < 1) return [];
-    return this.popularETFs.filter(
+    const fromPopular = this.popularETFs.filter(
       etf => etf.ticker.toLowerCase().includes(q) || etf.name.toLowerCase().includes(q)
-    ).slice(0, 20);
+    );
+    const fromApi = this.allETFs().filter(
+      etf => !fromPopular.some(p => p.ticker === etf.ticker)
+        && (etf.ticker.toLowerCase().includes(q) || etf.name.toLowerCase().includes(q))
+    );
+    return [...fromPopular, ...fromApi].slice(0, 20);
   });
 
   constructor() {
@@ -50,6 +55,9 @@ export class EtfService {
 
   setSearchQuery(query: string): void {
     this.searchQuery.set(query);
+    if (query.trim().length >= 1 && this.allETFs().length === 0 && !this.allETFsLoading()) {
+      this.loadAllETFs();
+    }
   }
 
   clearSearchResults(): void {
