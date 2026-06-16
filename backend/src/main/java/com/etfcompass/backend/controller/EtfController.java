@@ -3,8 +3,10 @@ package com.etfcompass.backend.controller;
 import com.etfcompass.backend.dto.ApiResponse;
 import com.etfcompass.backend.dto.etf.EtfCompareResponse;
 import com.etfcompass.backend.dto.etf.EtfDetailResponse;
+import com.etfcompass.backend.dto.etf.EtfHistoryResponse;
 import com.etfcompass.backend.dto.etf.EtfOverlapResponse;
 import com.etfcompass.backend.dto.etf.EtfResponse;
+import com.etfcompass.backend.service.EtfHistoryService;
 import com.etfcompass.backend.service.EtfService;
 import jakarta.validation.constraints.Size;
 import java.util.List;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class EtfController {
 
   private final EtfService etfService;
+  private final EtfHistoryService etfHistoryService;
 
   @GetMapping
   ApiResponse<List<EtfResponse>> search(@RequestParam(defaultValue = "") @Size(max = 80) String q) {
@@ -32,6 +35,11 @@ public class EtfController {
   @GetMapping("/{ticker}")
   ApiResponse<EtfDetailResponse> get(@PathVariable String ticker) {
     return ApiResponse.ok(etfService.getDetail(ticker));
+  }
+
+  @GetMapping("/{ticker}/history")
+  ApiResponse<EtfHistoryResponse> history(@PathVariable String ticker, @RequestParam(defaultValue = "1Y") String range) {
+    return ApiResponse.ok(etfHistoryService.getHistory(ticker, range));
   }
 
   @GetMapping("/compare")

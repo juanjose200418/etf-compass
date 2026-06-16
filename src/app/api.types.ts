@@ -170,6 +170,17 @@ export interface EtfDetailApiResponse {
   warnings: string[];
 }
 
+export interface EtfHistoryPointApiResponse {
+  date: string;
+  close: number;
+}
+
+export interface EtfHistoryApiResponse {
+  ticker: string;
+  range: string;
+  points: EtfHistoryPointApiResponse[];
+}
+
 export interface EtfCompareApiResponse {
   etfs: EtfResponse[];
   warnings: string[];

@@ -1,13 +1,14 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, OnInit, TemplateRef, ViewChild, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, OnInit, TemplateRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
-import { Observable, filter, map, startWith } from 'rxjs';
+import { Observable, Subscription, catchError, filter, forkJoin, map, of, startWith } from 'rxjs';
+import { EtfApiService } from './etf-api.service';
 import { EtfService } from './etf.service';
 import { ETF } from './types';
 import { AuthResult, AuthService } from './auth.service';
 import { PortfolioApiService } from './portfolio-api.service';
-import { AllocationSliceResponse, DashboardResponse, PortfolioAnalyticsResponse, PortfolioResponse, PositionResponse } from './api.types';
+import { AllocationSliceResponse, DashboardResponse, EtfHistoryApiResponse, PortfolioAnalyticsResponse, PortfolioResponse, PositionResponse } from './api.types';
 
 interface BestValues {
   minTER: number | null; maxFundSize: number | null;
@@ -38,6 +39,43 @@ interface ManualInvestmentRow {
 type AuthMode = 'login' | 'register' | 'recover';
 type PasswordResetStep = 'request' | 'confirm';
 type AnalyticsSectionKey = 'industry' | 'sector' | 'country' | 'etf';
+type HistoryRange = 'MAX' | '5Y' | '1Y' | '6M' | '3M' | '1M' | '1W' | '1D';
+
+interface HistorySeriesPoint {
+  date: string;
+  close: number;
+  percent: number;
+  timestamp: number;
+}
+
+interface HistorySeries {
+  ticker: string;
+  name: string;
+  color: string;
+  startClose: number;
+  latestClose: number;
+  changePercent: number;
+  points: HistorySeriesPoint[];
+}
+
+interface HistoryChartPoint extends HistorySeriesPoint {
+  x: number;
+  y: number;
+  ticker: string;
+  color: string;
+}
+
+interface HistoryChartLine {
+  ticker: string;
+  color: string;
+  points: HistoryChartPoint[];
+}
+
+interface HistoryChartData {
+  lines: HistoryChartLine[];
+  minPercent: number;
+  maxPercent: number;
+}
 
 @Component({
   selector: 'app-root',
@@ -54,11 +92,13 @@ export class AppComponent implements OnInit {
 
   service = inject(EtfService);
   auth = inject(AuthService);
+  private etfApi = inject(EtfApiService);
   private portfolioApi = inject(PortfolioApiService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
   readonly periods = ['1Y', '3Y', '5Y'] as const;
+  readonly historyRanges: HistoryRange[] = ['MAX', '5Y', '1Y', '6M', '3M', '1M', '1W', '1D'];
   readonly periodLabelMap: Record<'1Y' | '3Y' | '5Y', string> = {
     '1Y': '1 Year',
     '3Y': '3 Years',
@@ -116,10 +156,17 @@ export class AppComponent implements OnInit {
   readonly isDashboardRoute = computed(() => this.currentUrl() === '/dashboard');
   readonly activePortfolio = computed(() => this.portfolios().find(p => p.id === this.activePortfolioId()) ?? null);
   readonly selectedTickers = computed(() => new Set(this.service.selectedETFs().map(etf => etf.ticker)));
+  readonly comparisonHistoryRange = signal<HistoryRange>('1Y');
+  readonly comparisonHistorySeries = signal<HistorySeries[]>([]);
+  readonly comparisonHistoryWarnings = signal<string[]>([]);
+  readonly comparisonHistoryLoading = signal(false);
+  readonly comparisonHistoryError = signal<string | null>(null);
   readonly manualRows = signal<ManualInvestmentRow[]>([
     { id: 1, etf: '', value: '' }
   ]);
   private nextManualRowId = 2;
+  private historyRequestId = 0;
+  private historySubscription: Subscription | null = null;
 
   // ── Computed best values ──
 
@@ -259,6 +306,87 @@ export class AppComponent implements OnInit {
 
   private readonly moneyFormatters = new Map<string, Intl.NumberFormat>();
 
+  readonly historyComparisonRows = computed(() => this.comparisonHistorySeries().map(series => ({
+    ticker: series.ticker,
+    startClose: series.startClose,
+    latestClose: series.latestClose,
+    changePercent: series.changePercent,
+    color: series.color,
+    points: series.points.length
+  })));
+
+  readonly historyChartData = computed<HistoryChartData | null>(() => {
+    const series = this.comparisonHistorySeries();
+    if (series.length === 0) return null;
+
+    const allValues = series.flatMap(item => item.points.map(point => point.percent));
+    if (allValues.length === 0) return null;
+
+    const minPercent = Math.min(...allValues);
+    const maxPercent = Math.max(...allValues);
+    const spread = maxPercent - minPercent || 1;
+    const pad = spread * 0.1;
+    const allTimestamps = series.flatMap(item => item.points.map(point => point.timestamp));
+    const minTs = Math.min(...allTimestamps);
+    const maxTs = Math.max(...allTimestamps);
+    const tsRange = maxTs - minTs || 1;
+    const xStart = 68;
+    const xEnd = 470;
+    const yStart = 28;
+    const yEnd = 232;
+
+    const lines = series.map(item => ({
+      ticker: item.ticker,
+      color: item.color,
+      points: item.points.map(point => ({
+        ...point,
+        ticker: item.ticker,
+        color: item.color,
+        x: xStart + ((point.timestamp - minTs) / tsRange) * (xEnd - xStart),
+        y: yStart + ((maxPercent + pad - point.percent) / (spread + pad * 2)) * (yEnd - yStart)
+      }))
+    }));
+
+    return { lines, minPercent, maxPercent };
+  });
+
+  readonly historyXAxisLabels = computed(() => {
+    const series = this.comparisonHistorySeries();
+    if (series.length === 0) return [];
+    const timestamps = series.flatMap(item => item.points.map(point => point.timestamp));
+    if (timestamps.length === 0) return [];
+    const minTs = Math.min(...timestamps);
+    const maxTs = Math.max(...timestamps);
+    const total = 4;
+    return Array.from({ length: total }, (_, index) => {
+      const ratio = index / (total - 1);
+      const current = minTs + (maxTs - minTs) * ratio;
+      const x = 68 + ratio * (470 - 68);
+      return {
+        x,
+        label: new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(current))
+      };
+    });
+  });
+
+  readonly historyYAxisLabels = computed(() => {
+    const data = this.historyChartData();
+    if (!data) return [];
+    const total = 5;
+    const spread = data.maxPercent - data.minPercent || 1;
+    return Array.from({ length: total }, (_, index) => {
+      const ratio = index / (total - 1);
+      const value = data.maxPercent - spread * ratio;
+      const y = 28 + ratio * (232 - 28);
+      return { value: Math.round(value * 10) / 10, y };
+    });
+  });
+
+  readonly historyChartDots = computed(() => {
+    const data = this.historyChartData();
+    return data ? data.lines.flatMap(line => line.points.map(point => ({ ...point, color: line.color }))) : [];
+  });
+
   ngOnInit(): void {
     if (this.isDashboardRoute() && this.isAuthenticated()) {
       this.refreshPortfolioData();
@@ -271,6 +399,12 @@ export class AppComponent implements OnInit {
       if (this.isDashboardRoute() && this.isAuthenticated() && this.portfolios().length === 0 && !this.portfolioLoading) {
         this.refreshPortfolioData();
       }
+    });
+
+    effect(() => {
+      const selected = this.service.selectedETFs().map(etf => ({ ticker: etf.ticker, name: etf.name }));
+      const range = this.comparisonHistoryRange();
+      this.loadComparisonHistory(selected, range);
     });
   }
 
@@ -928,6 +1062,14 @@ export class AppComponent implements OnInit {
     }
   }
 
+  setComparisonHistoryRange(range: HistoryRange): void {
+    if (this.comparisonHistoryRange() === range) {
+      return;
+    }
+
+    this.comparisonHistoryRange.set(range);
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     if (!this.searchOpen) {
@@ -950,5 +1092,102 @@ export class AppComponent implements OnInit {
 
   isMaxedOut(): boolean {
     return this.service.isMaxReached();
+  }
+
+  getHistoryLinePoints(line: HistoryChartLine): string {
+    return line.points.map(point => `${point.x},${point.y}`).join(' ');
+  }
+
+  private loadComparisonHistory(selected: Array<{ ticker: string; name: string }>, range: HistoryRange): void {
+    this.historySubscription?.unsubscribe();
+
+    if (selected.length === 0) {
+      this.comparisonHistorySeries.set([]);
+      this.comparisonHistoryWarnings.set([]);
+      this.comparisonHistoryError.set(null);
+      this.comparisonHistoryLoading.set(false);
+      return;
+    }
+
+    this.comparisonHistoryLoading.set(true);
+    this.comparisonHistoryError.set(null);
+    this.comparisonHistoryWarnings.set([]);
+    const requestId = ++this.historyRequestId;
+
+    this.historySubscription = forkJoin(
+      selected.map(etf => this.etfApi.getHistory(etf.ticker, range).pipe(
+        map(history => ({ etf, history })),
+        catchError(err => of({ etf, error: this.errorMessage(err, `No se pudo cargar el historico de ${etf.ticker}.`) }))
+      ))
+    ).subscribe(results => {
+      if (requestId !== this.historyRequestId) {
+        return;
+      }
+
+      const warnings: string[] = [];
+      const series: HistorySeries[] = [];
+
+      for (const result of results) {
+        if ('error' in result) {
+          warnings.push(result.error);
+          continue;
+        }
+
+        const mapped = this.mapHistorySeries(result.etf.ticker, result.etf.name, result.history);
+        if (!mapped) {
+          warnings.push(`No hay historico suficiente para ${result.etf.ticker} en ${range}.`);
+          continue;
+        }
+
+        series.push(mapped);
+      }
+
+      this.comparisonHistorySeries.set(series);
+      this.comparisonHistoryWarnings.set(warnings);
+      this.comparisonHistoryError.set(series.length === 0 ? 'No hay historico disponible para los ETFs seleccionados en este rango.' : null);
+      this.comparisonHistoryLoading.set(false);
+    });
+  }
+
+  private mapHistorySeries(ticker: string, name: string, history: EtfHistoryApiResponse): HistorySeries | null {
+    const sortedPoints = [...history.points]
+        .map(point => ({
+          date: point.date,
+          close: point.close,
+          timestamp: new Date(point.date).getTime()
+        }))
+        .filter(point => Number.isFinite(point.close) && point.close > 0 && Number.isFinite(point.timestamp))
+        .sort((left, right) => left.timestamp - right.timestamp);
+
+    if (sortedPoints.length < 2) {
+      return null;
+    }
+
+    const startClose = sortedPoints[0].close;
+    const reduced = this.reduceHistoryPoints(sortedPoints.map(point => ({
+      ...point,
+      percent: ((point.close - startClose) / startClose) * 100
+    })));
+    const latest = reduced[reduced.length - 1];
+
+    return {
+      ticker,
+      name,
+      color: this.service.getETFColor(ticker),
+      startClose,
+      latestClose: latest.close,
+      changePercent: latest.percent,
+      points: reduced
+    };
+  }
+
+  private reduceHistoryPoints(points: HistorySeriesPoint[]): HistorySeriesPoint[] {
+    const maxPoints = 120;
+    if (points.length <= maxPoints) {
+      return points;
+    }
+
+    const step = Math.ceil(points.length / maxPoints);
+    return points.filter((_, index) => index === 0 || index === points.length - 1 || index % step === 0);
   }
 }

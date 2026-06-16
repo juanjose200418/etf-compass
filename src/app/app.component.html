@@ -631,53 +631,98 @@
     </ng-container>
   </section>
 
-  <!-- SVG Line Chart -->
-  <section class="section" *ngIf="service.selectedETFs().length >= 2">
-    <h2 style="margin-bottom: 0.5rem;">Performance Comparison</h2>
-    <ng-container *ngIf="chartData() as data; else noChartData">
-    <div class="chart-wrapper">
-      <svg [attr.viewBox]="viewBox" class="chart-svg" preserveAspectRatio="xMidYMid meet">
-        <line *ngFor="let lbl of yAxisLabels()" [attr.x1]="50" [attr.x2]="480" [attr.y1]="lbl.y" [attr.y2]="lbl.y"
-              stroke="#e5e7eb" stroke-dasharray="4,3" stroke-width="1"/>
-        <text *ngFor="let lbl of yAxisLabels()" x="44" [attr.y]="lbl.y + 4" text-anchor="end"
-              font-size="11" fill="#9ca3af">{{ lbl.value }}%</text>
-
-         <line *ngIf="zeroLineY() !== null"
-               [attr.x1]="50" [attr.x2]="480"
-               [attr.y1]="zeroLineY()" [attr.y2]="zeroLineY()"
-               stroke="#d1d5db" stroke-width="1.5"/>
-
-        <polyline *ngFor="let line of data.lines"
-                  [attr.points]="getLinePoints(line)"
-                  [attr.stroke]="line.color"
-                  fill="none" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
-                  class="chart-line"/>
-         <circle *ngFor="let pt of chartDots()"
-                 [attr.cx]="pt.x" [attr.cy]="pt.y" r="5" [attr.fill]="pt.color"
-                 class="chart-dot"/>
-         <text *ngFor="let pt of chartDots()"
-               [attr.x]="pt.x" [attr.y]="pt.y - 12" text-anchor="middle"
-               font-size="10" font-weight="700" [attr.fill]="pt.color"
-               class="chart-label">{{ service.formatPerformance(pt.val) }}</text>
-
-        <text *ngFor="let period of chartPeriods()" [attr.x]="data.xPositions[period]" y="260"
-              text-anchor="middle" font-size="12" font-weight="600" fill="#636e72">{{ periodLabelMap[period] }}</text>
-      </svg>
-
-      <div class="chart-legend">
-         <div class="legend-item" *ngFor="let etf of service.selectedETFs(); trackBy: trackByTicker">
-           <span class="legend-color" [style.background]="service.getETFColor(etf.ticker)"></span>
-           {{ etf.ticker }}
-         </div>
+  <!-- Historical Comparison Chart -->
+  <section class="section" *ngIf="service.selectedETFs().length >= 1">
+    <div class="history-panel-head">
+      <div>
+        <h2>Historical ETF Comparison</h2>
+        <p>Compara el rendimiento relativo de cada ETF en porcentaje para que el precio absoluto no distorsione la lectura.</p>
+      </div>
+      <div class="history-range-switcher" role="tablist" aria-label="Seleccionar rango historico">
+        <button type="button" *ngFor="let range of historyRanges" [class.active]="comparisonHistoryRange() === range" (click)="setComparisonHistoryRange(range)">{{ range }}</button>
       </div>
     </div>
-    </ng-container>
-    <ng-template #noChartData>
-      <div class="empty-state">
-        <span class="empty-icon">📉</span>
-        <p>No hay performance historica disponible con el proveedor actual para los ETFs seleccionados.</p>
+
+    <div class="history-compare-table" *ngIf="historyComparisonRows().length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>ETF</th>
+            <th>Inicio</th>
+            <th>Actual</th>
+            <th>Variacion</th>
+            <th>Puntos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of historyComparisonRows()">
+            <td>
+              <span class="history-ticker-dot" [style.background]="row.color"></span>
+              {{ row.ticker }}
+            </td>
+            <td>{{ row.startClose | number:'1.2-2' }}</td>
+            <td>{{ row.latestClose | number:'1.2-2' }}</td>
+            <td [class.perf-positive]="row.changePercent >= 0" [class.perf-negative]="row.changePercent < 0">
+              {{ row.changePercent >= 0 ? '+' : '' }}{{ row.changePercent | number:'1.2-2' }}%
+            </td>
+            <td>{{ row.points }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="analysis-warning" *ngIf="comparisonHistoryWarnings().length > 0">
+      <strong>History warnings</strong>
+      <p *ngFor="let warning of comparisonHistoryWarnings()">{{ warning }}</p>
+    </div>
+
+    <div class="empty-state" *ngIf="comparisonHistoryLoading()">
+      <span class="empty-icon">⏳</span>
+      <p>Cargando historico de los ETFs seleccionados...</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!comparisonHistoryLoading() && comparisonHistoryError() as historyError">
+      <span class="empty-icon">📉</span>
+      <p>{{ historyError }}</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!comparisonHistoryLoading() && service.selectedETFs().length === 0">
+      <span class="empty-icon">⇄</span>
+      <p>Selecciona uno o varios ETFs para activar la comparacion historica.</p>
+    </div>
+
+    <ng-container *ngIf="!comparisonHistoryLoading() && historyChartData() as data">
+      <div class="chart-wrapper history-chart-wrapper">
+        <svg [attr.viewBox]="viewBox" class="chart-svg" preserveAspectRatio="xMidYMid meet">
+          <line *ngFor="let lbl of historyYAxisLabels()" [attr.x1]="68" [attr.x2]="470" [attr.y1]="lbl.y" [attr.y2]="lbl.y"
+                stroke="#dbe4ef" stroke-dasharray="4,4" stroke-width="1"/>
+          <text *ngFor="let lbl of historyYAxisLabels()" x="58" [attr.y]="lbl.y + 4" text-anchor="end"
+                font-size="11" fill="#94a3b8">{{ lbl.value }}%</text>
+
+          <polyline *ngFor="let line of data.lines"
+                    [attr.points]="getHistoryLinePoints(line)"
+                    [attr.stroke]="line.color"
+                    fill="none" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"
+                    class="chart-line"/>
+
+          <circle *ngFor="let pt of historyChartDots()"
+                  [attr.cx]="pt.x" [attr.cy]="pt.y" r="3.5" [attr.fill]="pt.color"
+                  class="chart-dot history-dot">
+            <title>{{ pt.ticker }} · {{ pt.date }} · {{ pt.close | number:'1.2-2' }} · {{ pt.percent >= 0 ? '+' : '' }}{{ pt.percent | number:'1.2-2' }}%</title>
+          </circle>
+
+          <text *ngFor="let label of historyXAxisLabels()" [attr.x]="label.x" y="258"
+                text-anchor="middle" font-size="12" font-weight="700" fill="#64748b">{{ label.label }}</text>
+        </svg>
+
+        <div class="chart-legend">
+          <div class="legend-item" *ngFor="let row of historyComparisonRows()">
+            <span class="legend-color" [style.background]="row.color"></span>
+            {{ row.ticker }}
+          </div>
+        </div>
       </div>
-    </ng-template>
+    </ng-container>
   </section>
   </ng-template>
   </ng-template>

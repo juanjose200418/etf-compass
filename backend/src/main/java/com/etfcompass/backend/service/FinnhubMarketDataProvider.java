@@ -2,6 +2,8 @@ package com.etfcompass.backend.service;
 
 import com.etfcompass.backend.config.MarketDataProperties;
 import com.etfcompass.backend.domain.DistributionPolicy;
+import com.etfcompass.backend.dto.etf.EtfHistoryPointResponse;
+import com.etfcompass.backend.dto.etf.EtfHistoryResponse;
 import com.etfcompass.backend.dto.etf.EtfResponse;
 import com.etfcompass.backend.dto.etf.PerformanceResponse;
 import com.etfcompass.backend.dto.etf.QuoteSnapshotResponse;
@@ -9,6 +11,9 @@ import com.etfcompass.backend.exception.BadRequestException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -90,6 +95,65 @@ public class FinnhubMarketDataProvider extends BaseMarketDataProvider implements
     );
 
     return new MarketDataResult(response, List.copyOf(new LinkedHashSet<>(warnings)));
+  }
+
+  public EtfHistoryResponse fetchHistory(String ticker, EtfHistoryRange range) {
+    if (!isConfigured()) {
+      throw new BadRequestException("Missing FINNHUB_API_KEY. Configure a valid Finnhub token in the backend environment.");
+    }
+
+    String normalized = normalizeTicker(ticker);
+    RestClient client = restClientBuilder.baseUrl(BASE_URL).build();
+    List<String> warnings = new ArrayList<>();
+    long to = Instant.now().getEpochSecond();
+    JsonNode candles = requestJson(
+        client,
+        "/api/v1/stock/candle",
+        Map.of(
+            "symbol", normalized,
+            "resolution", range.finnhubResolution(),
+            "from", String.valueOf(range.fromEpochSeconds()),
+            "to", String.valueOf(to)
+        ),
+        "token",
+        properties.finnhubApiKey(),
+        false,
+        warnings,
+        "historical prices"
+    );
+
+    if (candles.path("s").asText("").equalsIgnoreCase("no_data")) {
+      return new EtfHistoryResponse(normalized, range.apiValue(), List.of());
+    }
+
+    JsonNode closes = candles.path("c");
+    JsonNode timestamps = candles.path("t");
+    if (!closes.isArray() || !timestamps.isArray() || closes.size() != timestamps.size()) {
+      return new EtfHistoryResponse(normalized, range.apiValue(), List.of());
+    }
+
+    List<EtfHistoryPointResponse> points = new ArrayList<>();
+    for (int i = 0; i < closes.size(); i++) {
+      JsonNode closeNode = closes.get(i);
+      JsonNode timeNode = timestamps.get(i);
+      if (closeNode == null || timeNode == null || !closeNode.isNumber() || !timeNode.isNumber()) {
+        continue;
+      }
+
+      BigDecimal close = closeNode.decimalValue();
+      if (close.signum() <= 0) {
+        continue;
+      }
+
+      LocalDate date = Instant.ofEpochSecond(timeNode.asLong()).atZone(ZoneOffset.UTC).toLocalDate();
+      if (!points.isEmpty() && points.get(points.size() - 1).date().equals(date)) {
+        points.set(points.size() - 1, new EtfHistoryPointResponse(date, close));
+      } else {
+        points.add(new EtfHistoryPointResponse(date, close));
+      }
+    }
+
+    return new EtfHistoryResponse(normalized, range.apiValue(), points);
   }
 
   private JsonNode findSearchMatch(JsonNode search, String ticker) {

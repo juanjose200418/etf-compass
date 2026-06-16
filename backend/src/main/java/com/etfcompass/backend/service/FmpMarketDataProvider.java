@@ -1,6 +1,8 @@
 package com.etfcompass.backend.service;
 
 import com.etfcompass.backend.config.MarketDataProperties;
+import com.etfcompass.backend.dto.etf.EtfHistoryPointResponse;
+import com.etfcompass.backend.dto.etf.EtfHistoryResponse;
 import com.etfcompass.backend.dto.etf.EtfResponse;
 import com.etfcompass.backend.dto.etf.PerformanceResponse;
 import com.etfcompass.backend.dto.etf.QuoteSnapshotResponse;
@@ -86,5 +88,31 @@ public class FmpMarketDataProvider extends BaseMarketDataProvider implements Mar
     );
 
     return new MarketDataResult(response, List.copyOf(new LinkedHashSet<>(warnings)));
+  }
+
+  public EtfHistoryResponse fetchHistory(String ticker, EtfHistoryRange range) {
+    if (!isConfigured()) {
+      throw new BadRequestException("Missing FMP_API_KEY. Configure a valid Financial Modeling Prep token in the backend environment.");
+    }
+
+    String normalized = normalizeTicker(ticker);
+    RestClient client = restClientBuilder.baseUrl(BASE_URL).build();
+    LocalDate today = LocalDate.now(ZoneOffset.UTC);
+    JsonNode history = requestJson(
+        client,
+        "/stable/historical-price-eod/light",
+        Map.of("symbol", normalized, "from", range.fromDate(today).toString(), "to", today.toString()),
+        "apikey",
+        properties.fmpApiKey(),
+        false,
+        new ArrayList<>(),
+        "historical prices"
+    );
+
+    List<EtfHistoryPointResponse> points = parseHistory(history).points().stream()
+        .map(point -> new EtfHistoryPointResponse(point.date(), point.close()))
+        .toList();
+
+    return new EtfHistoryResponse(normalized, range.apiValue(), points);
   }
 }
