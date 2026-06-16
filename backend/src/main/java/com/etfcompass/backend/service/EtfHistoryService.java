@@ -22,11 +22,15 @@ public class EtfHistoryService {
       throw new BadRequestException(ex.getMessage());
     }
 
-    return switch (properties.normalizedProvider()) {
-      case "finnhub" -> withOptionalFallback(finnhubProvider, fmpProvider, ticker, resolvedRange);
-      case "fmp" -> withOptionalFallback(fmpProvider, finnhubProvider, ticker, resolvedRange);
-      default -> throw new BadRequestException("Unsupported market data provider: " + properties.normalizedProvider());
-    };
+    if (finnhubProvider.isConfigured()) {
+      return withOptionalFallback(finnhubProvider, fmpProvider, ticker, resolvedRange);
+    }
+
+    if (fmpProvider.isConfigured()) {
+      return withOptionalFallback(fmpProvider, finnhubProvider, ticker, resolvedRange);
+    }
+
+    throw new BadRequestException("No historical market data provider is configured.");
   }
 
   private EtfHistoryResponse withOptionalFallback(
