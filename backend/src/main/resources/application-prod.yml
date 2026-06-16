@@ -7,9 +7,9 @@ server:
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST}:${PGPORT:5432}/${PGDATABASE}}
-    username: ${SPRING_DATASOURCE_USERNAME:${PGUSER}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${PGPASSWORD}}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
 app:
   cors:

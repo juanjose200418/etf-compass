@@ -1,115 +1,129 @@
-# Despliegue Publico
+# Deploy Guide
 
-## 1. Subir a GitHub
+## Objetivo
 
-1. Revisa el estado final con `git status`.
-2. Confirma que no aparezcan `.env`, `node_modules/`, `dist/`, `target/` ni otros artefactos locales.
-3. Haz `git add` solo cuando estes conforme con los archivos versionados.
-4. Crea el commit:
+Este proyecto queda preparado para:
+
+- backend Spring Boot en Railway
+- PostgreSQL gestionado por Railway
+- frontend Angular en Vercel
+- Swagger publico
+- secretos solo por variables de entorno
+
+No subas `.env`, claves API, tokens, passwords ni secretos JWT a GitHub.
+
+## 1. GitHub
+
+Antes de publicar, revisa siempre:
 
 ```bash
-git commit -m "chore: prepare project for public deployment"
+git status
+git diff
 ```
 
-5. Haz `git push` manualmente cuando quieras publicar.
+No debe aparecer ninguno de estos archivos o directorios:
 
-## 2. Variables para Railway
+```text
+.env
+backend/.env
+node_modules/
+dist/
+target/
+.angular/cache/
+```
 
-Backend Spring Boot:
+## 2. Variables para Railway Backend
+
+Variables minimas para Spring Boot en produccion:
 
 ```env
 SPRING_PROFILES_ACTIVE=prod
-JWT_SECRET=REEMPLAZAR_EN_RAILWAY
+DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+DB_USERNAME=${{Postgres.PGUSER}}
+DB_PASSWORD=${{Postgres.PGPASSWORD}}
+DB_NAME=${{Postgres.PGDATABASE}}
+JWT_SECRET=REEMPLAZAR_CON_UN_SECRET_REAL_Y_LARGO
 MARKET_DATA_PROVIDER=finnhub
 FINNHUB_API_KEY=REEMPLAZAR_EN_RAILWAY
 FMP_API_KEY=
 MARKET_DATA_ENRICH_ON_POSITION_CREATE=true
 CORS_ALLOWED_ORIGINS=http://localhost:4200,https://TU-FRONTEND.vercel.app
+SPRINGDOC_API_DOCS_ENABLED=true
+SPRINGDOC_SWAGGER_UI_ENABLED=true
 ```
 
-PostgreSQL en Railway suele exponer `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` y `PGPASSWORD` automaticamente.
+Notas:
 
-Si tu plantilla de Railway no los inyecta en Spring como JDBC URL, añade tambien:
+- `JWT_SECRET` debe existir solo en Railway.
+- `DB_URL`, `DB_USERNAME` y `DB_PASSWORD` deben venir del servicio PostgreSQL de Railway.
+- No pongas claves reales en `application.yml`, `application-prod.yml` ni Angular.
+
+## 3. Backend en Railway
+
+1. Crea un proyecto en Railway.
+2. Conecta el repositorio de GitHub.
+3. Crea un servicio desde este repo con `Root Directory = backend`.
+4. Railway debe usar `backend/Dockerfile`.
+5. Añade las variables de entorno del bloque anterior.
+6. Despliega el servicio.
+
+Configuracion relevante ya preparada en el repo:
+
+- `backend/src/main/resources/application-prod.yml`
+- `backend/Dockerfile`
+- `backend/.dockerignore`
+
+## 4. PostgreSQL en Railway
+
+1. Dentro del mismo proyecto, añade PostgreSQL.
+2. Verifica que Railway exponga `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` y `PGPASSWORD`.
+3. Construye estas variables en el backend:
 
 ```env
-SPRING_DATASOURCE_URL=jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
-SPRING_DATASOURCE_USERNAME=${PGUSER}
-SPRING_DATASOURCE_PASSWORD=${PGPASSWORD}
+DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+DB_USERNAME=${{Postgres.PGUSER}}
+DB_PASSWORD=${{Postgres.PGPASSWORD}}
+DB_NAME=${{Postgres.PGDATABASE}}
 ```
 
-`DATABASE_URL` solo sirve si lo conviertes a formato JDBC. No asumas que `postgres://...` funcionara tal cual en `spring.datasource.url`.
+4. Arranca el backend y comprueba que Flyway corre correctamente.
 
-## 3. Desplegar backend en Railway
+## 5. Swagger publico
 
-1. Crea un nuevo proyecto en Railway.
-2. Conecta el repo de GitHub.
-3. Configura el servicio backend con `Root Directory = backend`.
-4. Usa la opcion con `Dockerfile` para fijar Java 21 y un build reproducible.
-5. Añade las variables de entorno anteriores.
-6. Publica el servicio.
+Swagger queda accesible publicamente y el resto de endpoints sigue protegido.
 
-La opcion recomendada es usar `backend/Dockerfile`.
-
-Alternativa sin Dockerfile:
-
-```bash
-mvn spring-boot:run
-```
-
-Para produccion es mejor el `jar` generado dentro del contenedor.
-
-## 4. Desplegar PostgreSQL en Railway
-
-1. En el mismo proyecto de Railway, añade una base PostgreSQL.
-2. Verifica que el backend reciba `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` y `PGPASSWORD`.
-3. Si hace falta, define manualmente `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`.
-4. Comprueba que Flyway ejecute las migraciones al arrancar.
-
-## 5. Desplegar frontend en Vercel
-
-1. Conecta el repo en Vercel.
-2. Usa el directorio raiz del proyecto.
-3. El build debe ejecutarse con:
-
-```bash
-npm install
-npm run build
-```
-
-4. El output esperado de Angular 18 es:
+URLs esperadas:
 
 ```text
-dist/etf-compass/browser
+Swagger UI:
+https://TU-BACKEND.up.railway.app/swagger-ui/index.html
+
+OpenAPI JSON:
+https://TU-BACKEND.up.railway.app/v3/api-docs
 ```
 
-5. `vercel.json` ya apunta a ese directorio y deja una rewrite SPA hacia `index.html`.
-6. Antes del despliegue final, cambia `src/environments/environment.prod.ts` para apuntar al backend real:
-
-```ts
-export const environment = {
-  production: true,
-  apiUrl: 'https://TU-BACKEND.up.railway.app/api'
-};
-```
-
-## 6. Configurar CORS
-
-En produccion, el backend acepta por variable de entorno:
+Rutas publicas configuradas:
 
 ```text
-http://localhost:4200
-https://TU-FRONTEND.vercel.app
+/api/auth/**
+/swagger-ui/**
+/swagger-ui.html
+/v3/api-docs/**
+/actuator/health
+GET /api/etfs/**
 ```
 
-Headers permitidos:
+El resto requiere autenticacion JWT.
 
-```text
-Authorization
-Content-Type
-Accept
-Origin
-X-Requested-With
+## 6. CORS
+
+El backend lee origenes permitidos desde:
+
+```env
+CORS_ALLOWED_ORIGINS=http://localhost:4200,https://TU-FRONTEND.vercel.app
 ```
+
+No se usa `*` con credenciales activadas.
 
 Metodos permitidos:
 
@@ -122,62 +136,109 @@ DELETE
 OPTIONS
 ```
 
-No se usa `*` con credenciales activadas.
-
-## 7. Swagger publico
-
-Swagger queda publico en:
+Headers permitidos:
 
 ```text
-https://TU-BACKEND.up.railway.app/swagger-ui/index.html
+Authorization
+Content-Type
+Accept
+Origin
+X-Requested-With
 ```
 
-OpenAPI JSON:
+## 7. Frontend Angular
 
-```text
-https://TU-BACKEND.up.railway.app/v3/api-docs
+El frontend esta preparado para usar:
+
+- `src/environments/environment.ts` para local con `apiUrl: '/api'`
+- `src/environments/environment.prod.ts` para produccion
+
+Antes del deploy final en Vercel, sustituye el placeholder de produccion:
+
+```ts
+export const environment = {
+  production: true,
+  apiUrl: 'https://TU-BACKEND.up.railway.app/api'
+};
 ```
 
-Rutas publicas:
+Importante:
 
-```text
-/api/auth/**
-/swagger-ui/**
-/swagger-ui.html
-/v3/api-docs/**
-/actuator/health
-GET /api/etfs/**
+- Angular no debe contener API keys.
+- Angular no debe llamar directamente a Finnhub o FMP.
+- Todas las llamadas de mercado deben pasar por el backend.
+
+## 8. Vercel
+
+`vercel.json` ya esta preparado para SPA routing:
+
+```json
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/etf-compass/browser",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
 ```
 
-El resto de endpoints requiere JWT.
+Pasos:
 
-## 8. Pruebas finales
+1. Importa el repo en Vercel.
+2. Usa la raiz del proyecto.
+3. Build command:
 
-1. Abre el frontend:
-
-```text
-https://TU-FRONTEND.vercel.app
+```bash
+npm install
+npm run build
 ```
 
-2. Verifica que el frontend llama al backend Railway y no directamente a Finnhub/FMP.
-3. Comprueba login, registro y endpoints protegidos.
-4. Abre Swagger y prueba un `POST /api/auth/login`.
-5. Copia el token en Swagger Authorize y prueba un endpoint privado.
-6. Comprueba `GET /actuator/health`.
-7. Revisa logs de Railway para confirmar que no se muestran stacktraces al cliente ni secretos en respuestas.
-
-## URLs esperadas
+4. Output directory:
 
 ```text
-Frontend:
-https://TU-FRONTEND.vercel.app
+dist/etf-compass/browser
+```
+
+Variables de entorno en Vercel:
+
+- ninguna obligatoria con la configuracion actual
+- si cambias `environment.prod.ts`, haz commit antes de desplegar
+
+## 9. Checklist final
+
+1. `git status` limpio antes del push.
+2. No hay `.env` ni secretos en Git.
+3. `JWT_SECRET` solo existe en Railway.
+4. `FINNHUB_API_KEY` solo existe en Railway.
+5. Swagger abre publicamente.
+6. Los endpoints privados responden `401/403` sin token.
+7. El frontend llama al backend Railway.
+8. `GET /actuator/health` responde correctamente.
+
+## 10. Comandos utiles
 
 Backend:
+
+```bash
+cd backend
+mvn -DskipTests clean package
+```
+
+Frontend:
+
+```bash
+npm install
+npm run build
+```
+
+## 11. URLs a sustituir
+
+Reemplaza estos placeholders cuando tengas las URLs reales:
+
+```text
 https://TU-BACKEND.up.railway.app
-
-Swagger:
-https://TU-BACKEND.up.railway.app/swagger-ui/index.html
-
-OpenAPI JSON:
-https://TU-BACKEND.up.railway.app/v3/api-docs
+https://TU-FRONTEND.vercel.app
 ```

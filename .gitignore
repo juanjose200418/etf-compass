@@ -17,6 +17,7 @@ node_modules/
 # Environment and secrets
 .env
 *.env
+backend/.env
 .env.local
 .env.production
 application-local.yml
