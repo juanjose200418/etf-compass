@@ -36,7 +36,13 @@ public class EtfHistoryService {
       EtfHistoryRange range
   ) {
     try {
-      return primary.fetchHistory(ticker, range);
+      EtfHistoryResponse primaryResponse = primary.fetchHistory(ticker, range);
+      if (!isEmpty(primaryResponse) || !secondary.isConfigured()) {
+        return primaryResponse;
+      }
+
+      EtfHistoryResponse secondaryResponse = secondary.fetchHistory(ticker, range);
+      return isEmpty(secondaryResponse) ? primaryResponse : secondaryResponse;
     } catch (BadRequestException primaryError) {
       if (secondary.isConfigured()) {
         return secondary.fetchHistory(ticker, range);
@@ -52,12 +58,22 @@ public class EtfHistoryService {
       EtfHistoryRange range
   ) {
     try {
-      return primary.fetchHistory(ticker, range);
+      EtfHistoryResponse primaryResponse = primary.fetchHistory(ticker, range);
+      if (!isEmpty(primaryResponse) || !secondary.isConfigured()) {
+        return primaryResponse;
+      }
+
+      EtfHistoryResponse secondaryResponse = secondary.fetchHistory(ticker, range);
+      return isEmpty(secondaryResponse) ? primaryResponse : secondaryResponse;
     } catch (BadRequestException primaryError) {
       if (secondary.isConfigured()) {
         return secondary.fetchHistory(ticker, range);
       }
       throw primaryError;
     }
+  }
+
+  private boolean isEmpty(EtfHistoryResponse response) {
+    return response == null || response.points() == null || response.points().isEmpty();
   }
 }
