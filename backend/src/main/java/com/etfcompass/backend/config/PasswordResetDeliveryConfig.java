@@ -26,7 +26,7 @@ public class PasswordResetDeliveryConfig {
     }
 
     if (environment.acceptsProfiles(Profiles.of("prod"))) {
-      return new DisabledPasswordResetDeliveryService();
+      return new LoggingPasswordResetDeliveryService();
     }
 
     return new LoggingPasswordResetDeliveryService();
