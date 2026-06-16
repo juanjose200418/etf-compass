@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
@@ -54,6 +54,7 @@ export class AppComponent implements OnInit {
   auth = inject(AuthService);
   private portfolioApi = inject(PortfolioApiService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   readonly periods = ['1Y', '3Y', '5Y'] as const;
   readonly periodLabelMap: Record<'1Y' | '3Y' | '5Y', string> = {
@@ -261,7 +262,7 @@ export class AppComponent implements OnInit {
 
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      takeUntilDestroyed()
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe(() => {
       if (this.isDashboardRoute() && this.isAuthenticated() && this.portfolios().length === 0 && !this.portfolioLoading) {
         this.refreshPortfolioData();
