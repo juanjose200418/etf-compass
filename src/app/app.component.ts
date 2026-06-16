@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, OnInit, TemplateRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
@@ -50,6 +50,8 @@ type AnalyticsSectionKey = 'industry' | 'sector' | 'country' | 'etf';
 export class AppComponent implements OnInit {
   private static readonly ANALYTICS_COLLAPSED_ROWS = 8;
 
+  @ViewChild('etfExplorerTemplate', { static: true }) etfExplorerTemplate!: TemplateRef<unknown>;
+
   service = inject(EtfService);
   auth = inject(AuthService);
   private portfolioApi = inject(PortfolioApiService);
@@ -78,6 +80,8 @@ export class AppComponent implements OnInit {
   authLoading = false;
   authError: string | null = null;
   authMessage: string | null = null;
+  authPasswordVisible = false;
+  authResetPasswordVisible = false;
   analyticsExpanded: Record<AnalyticsSectionKey, boolean> = {
     industry: false,
     sector: false,
@@ -273,6 +277,8 @@ export class AppComponent implements OnInit {
   setAuthMode(mode: AuthMode): void {
     this.authMode = mode;
     this.clearAuthFeedback();
+    this.authPasswordVisible = false;
+    this.authResetPasswordVisible = false;
     if (mode !== 'recover') {
       this.authResetStep = 'request';
       this.authResetCode = '';
@@ -377,6 +383,14 @@ export class AppComponent implements OnInit {
         this.authError = this.errorMessage(err, 'No se pudo restablecer la password. Revisa el codigo e intentalo otra vez.');
       }
     });
+  }
+
+  toggleAuthPasswordVisibility(): void {
+    this.authPasswordVisible = !this.authPasswordVisible;
+  }
+
+  toggleResetPasswordVisibility(): void {
+    this.authResetPasswordVisible = !this.authResetPasswordVisible;
   }
 
   logout(): void {

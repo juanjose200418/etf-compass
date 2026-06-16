@@ -31,13 +31,57 @@
   <ng-container *ngIf="isDashboardRoute(); else publicRoute">
     <section class="portfolio-shell">
       <div class="portfolio-topbar">
-        <div>
+        <div class="portfolio-hero-copy">
           <span class="eyebrow">Portfolio command center</span>
           <h2>Dashboard financiero</h2>
           <p>Añade manualmente cada ETF y su valor invertido para calcular asignacion, industrias, sectores y exposicion geografica.</p>
         </div>
-        <button class="btn-refresh" [disabled]="portfolioLoading" (click)="refreshPortfolioData()">Actualizar</button>
+        <div class="portfolio-topbar-actions">
+          <div class="topbar-signal">
+            <span>Sesion activa</span>
+            <strong>{{ currentUser()?.displayName || 'Investor' }}</strong>
+          </div>
+          <button class="btn-refresh" [disabled]="portfolioLoading" (click)="refreshPortfolioData()">Actualizar</button>
+        </div>
       </div>
+
+      <section class="dashboard-hero-panel elevated-panel">
+        <div class="dashboard-hero-intro">
+          <span class="eyebrow compact">Investment atlas</span>
+          <h3>Convierte tu cartera en un mapa vivo de exposicion, riesgo y conviccion.</h3>
+          <p>
+            Sigue el peso real de cada ETF, revisa coberturas de metadata y salta directo al workbench para ajustar posiciones o abrir una cartera nueva.
+          </p>
+          <div class="dashboard-hero-tags">
+            <span>JWT en memoria</span>
+            <span>Exposicion look-through</span>
+            <span>Analisis multi-capa</span>
+          </div>
+        </div>
+
+        <div class="dashboard-hero-stats">
+          <article class="hero-stat-card accent-teal">
+            <span>Carteras activas</span>
+            <strong>{{ portfolios().length }}</strong>
+            <small>Espacios listos para seguimiento</small>
+          </article>
+          <article class="hero-stat-card accent-amber">
+            <span>ETFs monitorizados</span>
+            <strong>{{ populatedManualRowCount() }}</strong>
+            <small>Entradas editables en workbench</small>
+          </article>
+          <article class="hero-stat-card accent-slate">
+            <span>Watchlist</span>
+            <strong>{{ service.favorites().length }}</strong>
+            <small>Tesis guardadas para comparar</small>
+          </article>
+          <article class="hero-stat-card accent-blue">
+            <span>Cobertura sectorial</span>
+            <strong>{{ analytics()?.sectorDataQuality?.coveragePercentage?.toFixed(1) || '0.0' }}%</strong>
+            <small>Calidad del mapeo actual</small>
+          </article>
+        </div>
+      </section>
 
       <div class="dashboard-orbit" *ngIf="activePortfolio() as portfolio">
         <button class="orbit-chip primary" type="button" (click)="focusSection('portfolio-summary')">
@@ -65,6 +109,30 @@
           <strong>{{ analyticsSectionCount(analytics()?.etfAllocation) }} bloques</strong>
         </button>
       </div>
+
+      <section class="dashboard-empty-state elevated-panel" *ngIf="!activePortfolio()">
+        <div>
+          <span class="eyebrow compact">Launchpad</span>
+          <h3>Crea tu primera cartera y empieza el analisis.</h3>
+          <p>
+            Define una cartera base, añade tus ETFs desde el workbench y desbloquea exposicion geografica, sectores, industrias y asignacion por ETF.
+          </p>
+        </div>
+        <div class="dashboard-empty-grid">
+          <div>
+            <strong>1</strong>
+            <span>Crea una cartera con divisa base</span>
+          </div>
+          <div>
+            <strong>2</strong>
+            <span>Añade posiciones manualmente</span>
+          </div>
+          <div>
+            <strong>3</strong>
+            <span>Explora el analisis look-through</span>
+          </div>
+        </div>
+      </section>
 
       <div class="portfolio-grid" id="portfolio-summary" [class.section-focused]="isFocusedSection('portfolio-summary')" *ngIf="dashboard() as dash">
         <article class="metric-card networth interactive-card" (click)="focusSection('portfolio-workbench')">
@@ -320,6 +388,22 @@
           </div>
         </article>
       </div>
+
+      <section class="dashboard-explorer-panel elevated-panel">
+        <div class="dashboard-explorer-head">
+          <div>
+            <span class="eyebrow compact">ETF lab</span>
+            <h3>Compara ETFs con tabla completa y lectura visual de performance.</h3>
+            <p>Busca ETFs, crea un set de comparacion y contrasta sus datos clave en tabla y grafica sin salir del dashboard.</p>
+          </div>
+          <div class="dashboard-explorer-badge">
+            <strong>{{ service.selectedETFs().length }}</strong>
+            <span>ETFs en comparacion</span>
+          </div>
+        </div>
+
+        <ng-container [ngTemplateOutlet]="etfExplorerTemplate"></ng-container>
+      </section>
     </section>
   </ng-container>
 
@@ -348,7 +432,7 @@
 
       <label *ngIf="authMode === 'register'">
         Nombre
-        <input type="text" [value]="authDisplayName" (input)="authDisplayName = $any($event.target).value" placeholder="Juan Jose" (keydown.enter)="submitAuth()">
+        <input type="text" [value]="authDisplayName" (input)="authDisplayName = $any($event.target).value" placeholder="Name" (keydown.enter)="submitAuth()">
       </label>
       <label>
         Email
@@ -357,7 +441,10 @@
 
       <label *ngIf="authMode !== 'recover'">
         Password
-        <input type="password" [value]="authPassword" (input)="authPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="submitAuth()">
+        <div class="password-field">
+          <input [type]="authPasswordVisible ? 'text' : 'password'" [value]="authPassword" (input)="authPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="submitAuth()">
+          <button class="password-toggle" type="button" (click)="toggleAuthPasswordVisibility()" [attr.aria-label]="authPasswordVisible ? 'Ocultar password' : 'Mostrar password'">{{ authPasswordVisible ? '🙈' : '👁️' }}</button>
+        </div>
       </label>
 
       <p class="auth-helper" *ngIf="authMode === 'register'">
@@ -378,7 +465,10 @@
 
         <label *ngIf="authResetStep === 'confirm'">
           Nueva password
-          <input type="password" [value]="authResetPassword" (input)="authResetPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="confirmPasswordReset()">
+          <div class="password-field">
+            <input [type]="authResetPasswordVisible ? 'text' : 'password'" [value]="authResetPassword" (input)="authResetPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="confirmPasswordReset()">
+            <button class="password-toggle" type="button" (click)="toggleResetPasswordVisibility()" [attr.aria-label]="authResetPasswordVisible ? 'Ocultar password' : 'Mostrar password'">{{ authResetPasswordVisible ? '🙈' : '👁️' }}</button>
+          </div>
         </label>
       </ng-container>
 
@@ -418,6 +508,7 @@
     </div>
   </section>
 
+  <ng-template #etfExplorerTemplate>
   <!-- Watchlist -->
   <section class="section">
     <div class="section-header">
@@ -588,6 +679,7 @@
       </div>
     </ng-template>
   </section>
+  </ng-template>
   </ng-template>
 
 </main>
