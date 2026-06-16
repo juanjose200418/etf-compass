@@ -9,6 +9,13 @@ import { ETF } from './types';
 export class EtfApiService {
   private http = inject(HttpClient);
 
+  search(query?: string) {
+    const q = (query ?? '').trim();
+    return this.http.get<ApiResponse<EtfResponse[]>>(buildApiUrl(`/etfs?q=${encodeURIComponent(q)}`)).pipe(
+      map(res => res.data.map(etf => this.mapETF(etf)))
+    );
+  }
+
   getDetail(ticker: string) {
     return this.http.get<ApiResponse<EtfDetailApiResponse>>(buildApiUrl(`/etfs/${encodeURIComponent(ticker)}`)).pipe(
       map(res => ({ etf: this.mapETF(res.data.etf), warnings: res.data.warnings ?? [] }))

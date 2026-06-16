@@ -10,6 +10,9 @@ export class EtfService {
   private readonly pendingTickers = new Set<string>();
 
   readonly selectedETFs = signal<ETF[]>([]);
+  readonly allETFs = signal<ETF[]>([]);
+  readonly allETFsLoading = signal(false);
+  readonly allETFSError = signal<string | null>(null);
   readonly favorites = signal<string[]>([]);
   readonly isAddingETF = signal(false);
   readonly error = signal<string | null>(null);
@@ -31,6 +34,18 @@ export class EtfService {
 
   constructor() {
     this.loadFavorites();
+  }
+
+  loadAllETFs(): void {
+    if (this.allETFs().length > 0 || this.allETFsLoading()) return;
+    this.allETFsLoading.set(true);
+    this.allETFSError.set(null);
+    this.etfApi.search('').pipe(
+      finalize(() => this.allETFsLoading.set(false))
+    ).subscribe({
+      next: etfs => this.allETFs.set(etfs),
+      error: () => this.allETFSError.set('No se pudieron cargar los ETFs desde la API publica.')
+    });
   }
 
   setSearchQuery(query: string): void {

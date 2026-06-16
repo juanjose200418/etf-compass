@@ -189,6 +189,29 @@ export class AppComponent implements OnInit {
     };
   });
 
+  private readonly rangeToPeriod: Record<HistoryRange, '1Y' | '3Y' | '5Y'> = {
+    'MAX': '5Y', '5Y': '5Y', '1Y': '1Y', '6M': '1Y', '3M': '1Y', '1M': '1Y', '1W': '1Y', '1D': '1Y'
+  };
+
+  readonly rangePeriodLabel = computed(() => {
+    const range = this.comparisonHistoryRange();
+    const active = this.rangePeriods();
+    if (active.length === 1) {
+      const p = active[0];
+      return this.periodLabelMap[p];
+    }
+    return range;
+  });
+
+  private readonly rangePeriods = computed<('1Y' | '3Y' | '5Y')[]>(() => {
+    const range = this.comparisonHistoryRange();
+    const target = this.rangeToPeriod[range];
+    const etfs = this.service.selectedETFs();
+    const available = (['5Y', '3Y', '1Y'] as const).filter(p => etfs.some(e => e.performance[p] != null));
+    if (available.includes(target)) return [target];
+    return available.length > 0 ? [available[0]] : [];
+  });
+
   readonly chartPeriods = computed(() => {
     const etfs = this.service.selectedETFs();
     return this.periods.filter(period => etfs.some(etf => etf.performance[period] != null));
@@ -246,7 +269,7 @@ export class AppComponent implements OnInit {
     const etfs = this.service.selectedETFs();
     if (etfs.length < 2) return null;
 
-    const activePeriods = this.chartPeriods();
+    const activePeriods = this.rangePeriods();
     if (activePeriods.length === 0) return null;
 
     const allVals = etfs.flatMap(e => activePeriods.map(period => e.performance[period]).filter((value): value is number => value != null));
@@ -293,6 +316,15 @@ export class AppComponent implements OnInit {
   readonly chartDots = computed(() => {
     const data = this.chartData();
     return data ? this.buildDots(data.lines) : [];
+  });
+
+  readonly chartXAxisLabels = computed(() => {
+    const data = this.chartData();
+    if (!data) return [];
+    return Object.entries(data.xPositions).map(([period, x]) => ({
+      x,
+      label: this.periodLabelMap[period as '1Y' | '3Y' | '5Y'] || period
+    }));
   });
 
   readonly zeroLineY = computed(() => {
@@ -391,6 +423,7 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     if (this.isDashboardRoute() && this.isAuthenticated()) {
       this.refreshPortfolioData();
+      this.service.loadAllETFs();
     }
 
     this.router.events.pipe(
@@ -399,6 +432,7 @@ export class AppComponent implements OnInit {
     ).subscribe(() => {
       if (this.isDashboardRoute() && this.isAuthenticated() && this.portfolios().length === 0 && !this.portfolioLoading) {
         this.refreshPortfolioData();
+        this.service.loadAllETFs();
       }
     });
 
