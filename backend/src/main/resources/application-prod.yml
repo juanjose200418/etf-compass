@@ -13,7 +13,8 @@ spring:
 
 app:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,https://TU-FRONTEND.vercel.app}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,https://etf-compass-beta.vercel.app}
+  frontend-url: ${APP_FRONTEND_URL:https://etf-compass-beta.vercel.app}
 
 springdoc:
   api-docs:

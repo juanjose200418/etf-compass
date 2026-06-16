@@ -9,7 +9,7 @@ public record MailProperties(
 
   public MailProperties {
     if (fromAddress == null || fromAddress.isBlank()) {
-      throw new IllegalStateException("MAIL_FROM must be configured before the backend starts");
+      throw new IllegalStateException("SMTP_FROM must be configured before the backend starts");
     }
   }
 }
