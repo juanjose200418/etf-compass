@@ -406,7 +406,7 @@ export class AppComponent implements OnInit {
       const selected = this.service.selectedETFs().map(etf => ({ ticker: etf.ticker, name: etf.name }));
       const range = this.comparisonHistoryRange();
       this.loadComparisonHistory(selected, range);
-    }, { injector: this.injector });
+    }, { injector: this.injector, allowSignalWrites: true });
   }
 
   setAuthMode(mode: AuthMode): void {
