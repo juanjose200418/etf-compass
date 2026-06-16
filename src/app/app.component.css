@@ -1656,66 +1656,6 @@
   margin-top: 0.8rem;
 }
 
-.chart-range-label {
-  margin-bottom: 0.75rem;
-  color: #64748b;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.chart-range-label strong {
-  color: #0f172a;
-}
-
-.all-etfs-wrapper {
-  overflow-x: auto;
-}
-
-.all-etfs-scroll {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.all-etfs-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-.all-etfs-table th,
-.all-etfs-table td {
-  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-  padding: 0.6rem 0.75rem;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.all-etfs-table th {
-  color: #64748b;
-  font-size: 0.7rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  position: sticky;
-  top: 0;
-  background: #fff;
-  z-index: 1;
-}
-
-.all-etfs-table tbody tr:hover {
-  background: rgba(20, 184, 166, 0.06);
-}
-
-.all-etfs-table td strong {
-  color: #0f172a;
-  letter-spacing: -0.03em;
-}
-
-.all-etfs-table .btn-add {
-  padding: 0.35rem 0.65rem;
-  font-size: 0.78rem;
-}
-
 .chart-svg {
   width: 100%;
   height: auto;
