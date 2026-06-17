@@ -34,6 +34,11 @@ interface ManualInvestmentRow {
   id: number;
   etf: string;
   value: string;
+  positionId?: string;
+  currentValue?: number;
+  profitLoss?: number;
+  profitLossPercentage?: number;
+  currency?: string;
 }
 
 type AuthMode = 'login' | 'register' | 'recover';
@@ -630,7 +635,27 @@ export class AppComponent implements OnInit {
   }
 
   removeManualRow(id: number): void {
-    this.manualRows.update(rows => rows.length <= 1 ? rows : rows.filter(row => row.id !== id));
+    const row = this.manualRows().find(r => r.id === id);
+    if (!row) return;
+
+    if (row.positionId) {
+      const name = row.etf || 'este ETF';
+      if (!confirm(`Eliminar ${name} de la cartera?`)) return;
+      this.portfolioApi.deletePosition(row.positionId).subscribe({
+        next: () => {
+          this.manualRows.update(rows => rows.length <= 1 ? rows : rows.filter(r => r.id !== id));
+          this.importMessage = `${name} eliminado.`;
+          this.cdr.markForCheck();
+          this.refreshPortfolioData();
+        },
+        error: err => {
+          this.importError = this.errorMessage(err, `No se pudo eliminar ${name}.`);
+          this.cdr.markForCheck();
+        }
+      });
+    } else {
+      this.manualRows.update(rows => rows.length <= 1 ? rows : rows.filter(r => r.id !== id));
+    }
   }
 
   updateManualRow(id: number, field: 'etf' | 'value', value: string): void {
@@ -954,7 +979,12 @@ export class AppComponent implements OnInit {
     const rows = portfolio.positions.map((position, index) => ({
       id: index + 1,
       etf: this.manualRowLabel(position),
-      value: this.formatManualRowValue(position.investedCapital ?? position.currentValue)
+      value: this.formatManualRowValue(position.investedCapital ?? position.currentValue),
+      positionId: position.id,
+      currentValue: position.currentValue,
+      profitLoss: position.profitLoss,
+      profitLossPercentage: position.profitLossPercentage,
+      currency: position.currency
     }));
 
     this.manualRows.set(rows);

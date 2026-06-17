@@ -26,6 +26,10 @@ export class PortfolioApiService {
     return this.http.delete<void>(buildApiUrl(`/portfolios/${portfolioId}`), { headers: this.auth.authHeaders() });
   }
 
+  deletePosition(positionId: string) {
+    return this.http.delete<void>(buildApiUrl(`/portfolios/positions/${positionId}`), { headers: this.auth.authHeaders() });
+  }
+
   addManualPosition(portfolioId: string, ticker: string, value: number, currency = 'EUR') {
     return this.http.post<ApiResponse<unknown>>(
       buildApiUrl(`/portfolios/${portfolioId}/positions`),

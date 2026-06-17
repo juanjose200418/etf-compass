@@ -1115,14 +1115,14 @@
 .manual-head,
 .manual-row {
   display: grid;
-  grid-template-columns: minmax(260px, 1.5fr) minmax(180px, 0.75fr) 44px;
-  gap: 0.75rem;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(110px, 0.55fr) minmax(90px, 0.5fr) minmax(90px, 0.5fr) 44px;
+  gap: 0.6rem;
   align-items: center;
 }
 
 .manual-head {
   color: #64748b;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1180,6 +1180,38 @@
   color: #64748b;
   font-size: 0.78rem;
   font-weight: 900;
+}
+
+.stat-cell {
+  text-align: right;
+  line-height: 1.35;
+}
+
+.stat-cell strong {
+  font-size: 0.9rem;
+  letter-spacing: -0.03em;
+}
+
+.stat-cell span {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.stat-cell small {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.stat-cell.pending {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.is-position {
+  background: rgba(255, 255, 255, 0.96) !important;
 }
 
 .btn-mini,
@@ -1877,6 +1909,10 @@
   .manual-row .etf-name-input,
   .manual-row .money-cell {
     grid-column: 1 / -1;
+  }
+
+  .manual-row .stat-cell {
+    display: none;
   }
 
   .manual-row .btn-mini {
