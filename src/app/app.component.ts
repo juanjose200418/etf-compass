@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, Injector, OnInit, TemplateRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, DestroyRef, HostListener, Injector, OnInit, TemplateRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
@@ -97,6 +97,7 @@ export class AppComponent implements OnInit {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   private injector = inject(Injector);
+  private cdr = inject(ChangeDetectorRef);
 
   readonly periods = ['1Y', '3Y', '5Y'] as const;
   readonly historyRanges: HistoryRange[] = ['MAX', '5Y', '1Y', '6M', '3M', '1M', '1W', '1D'];
@@ -487,6 +488,7 @@ export class AppComponent implements OnInit {
         this.authResetCode = '';
         this.authResetPassword = '';
         this.authMessage = 'Codigo generado correctamente. Revisa los logs del servidor para obtener el codigo de recuperacion.';
+        this.cdr.markForCheck();
       },
       error: err => {
         this.authLoading = false;
@@ -512,6 +514,7 @@ export class AppComponent implements OnInit {
         this.authResetPassword = '';
         this.authPassword = '';
         this.authMessage = 'Contrasena actualizada. Ya puedes iniciar sesion con la nueva password.';
+        this.cdr.markForCheck();
       },
       error: err => {
         this.authLoading = false;
