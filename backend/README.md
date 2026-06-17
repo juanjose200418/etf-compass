@@ -46,18 +46,33 @@ FMP_API_KEY=your-financial-modeling-prep-api-key
 
 ## Password Recovery Email
 
-The forgot-password flow sends a 6-digit verification code by email. Configure SMTP before using it in a real environment:
+The forgot-password flow sends a 6-digit verification code by email. Configure SMTP before using it in a real environment.
+
+### Google Gmail Setup
+
+1. **Activa 2FA** en tu cuenta Google:  
+   https://myaccount.google.com/security
+
+2. **Crea una App Password**:  
+   https://myaccount.google.com/apppasswords  
+   Selecciona "Correo" y "Dispositivo" → genera una password de 16 letras.
+
+3. **Configura las variables de entorno** (`.env` o export):
 
 ```bash
-export MAIL_HOST=smtp.example.com
-export MAIL_PORT=587
-export MAIL_USERNAME=your_smtp_user
-export MAIL_PASSWORD=your_smtp_password
-export MAIL_FROM=no-reply@your-domain.com
+export SMTP_HOST=smtp.gmail.com
+export SMTP_PORT=587
+export SMTP_USERNAME=tuemail@gmail.com
+export SMTP_PASSWORD=la-app-password-de-16-letras
+export SMTP_FROM=tuemail@gmail.com
+export SMTP_SMTP_AUTH=true
+export SMTP_SMTP_STARTTLS=true
 export PASSWORD_RESET_CODE_EXPIRATION_MINUTES=15
 ```
 
-If `MAIL_HOST` is not configured, the backend logs the code locally instead of sending a real email.
+El código generado es de **6 dígitos numéricos** (100000–999999), se guarda hasheado con BCrypt y caduca según `PASSWORD_RESET_CODE_EXPIRATION_MINUTES` (default: 15 min).
+
+Si `SMTP_HOST` no está configurado, el backend **loguea el código por consola** en vez de enviar un email real:
 
 ## Real ETF Metadata
 
