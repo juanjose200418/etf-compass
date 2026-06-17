@@ -578,6 +578,7 @@ export class AppComponent implements OnInit {
         this.portfolios.update(list => [portfolio, ...list]);
         this.activePortfolioId.set(portfolio.id);
         this.syncManualRowsFromPortfolio(portfolio);
+        this.portfolioName = '';
         this.portfolioLoading = false;
         this.loadDashboard();
         this.loadAnalytics();
@@ -639,8 +640,12 @@ export class AppComponent implements OnInit {
       .map(row => ({ etf: row.etf.trim(), value: Number(row.value.replace(',', '.')) }))
       .filter(row => row.etf.length > 0 && Number.isFinite(row.value) && row.value > 0);
 
-    if (!portfolioId || rows.length === 0) {
-      this.importError = 'Crea o selecciona una cartera y escribe al menos un ETF con un valor mayor que 0.';
+    if (!portfolioId) {
+      this.importError = 'Crea o selecciona una cartera primero.';
+      return;
+    }
+    if (rows.length === 0) {
+      this.importError = 'Escribe al menos un ETF con un valor mayor que 0 para guardar la cartera.';
       return;
     }
     this.importLoading = true;
@@ -649,12 +654,16 @@ export class AppComponent implements OnInit {
     this.portfolioApi.addManualPositions(portfolioId, rows.map(row => ({ ticker: row.etf, value: row.value, currency }))).subscribe({
       next: createdPositions => {
         this.importLoading = false;
-        this.importMessage = `Añadidas ${createdPositions.length} inversiones ETF a la cartera.`;
+        this.importMessage = createdPositions.length === 1
+          ? 'Cartera guardada con 1 ETF.'
+          : `Cartera guardada con ${createdPositions.length} ETFs.`;
+        this.cdr.markForCheck();
         this.refreshPortfolioData();
       },
       error: err => {
         this.importLoading = false;
-        this.importError = this.errorMessage(err, 'No se pudieron añadir las inversiones. Revisa los ETFs y valores.');
+        this.importError = this.errorMessage(err, 'No se pudieron guardar los ETFs. Revisa los tickers e intentalo otra vez.');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -667,7 +676,10 @@ export class AppComponent implements OnInit {
 
     this.portfolioApi.dashboard().subscribe({
       next: dashboard => this.dashboard.set(dashboard),
-      error: err => this.handleProtectedError(err, 'No se pudo cargar el dashboard.')
+      error: err => {
+        this.dashboard.set(null);
+        this.handleProtectedError(err, 'No se pudo cargar el dashboard.');
+      }
     });
   }
 

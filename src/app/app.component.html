@@ -47,38 +47,33 @@
 
       <section class="dashboard-hero-panel elevated-panel">
         <div class="dashboard-hero-intro">
-          <span class="eyebrow compact">Investment atlas</span>
-          <h3>Convierte tu cartera en un mapa vivo de exposicion, riesgo y conviccion.</h3>
+          <span class="eyebrow compact">Tu cartera</span>
+          <h3>Crea tu cartera, añade ETFs y descubre en que industrias, sectores y paises inviertes.</h3>
           <p>
-            Sigue el peso real de cada ETF, revisa coberturas de metadata y salta directo al workbench para ajustar posiciones o abrir una cartera nueva.
+            Escribe los ETFs que tienes y su valor invertido. El resto lo calculamos nosotros.
           </p>
-          <div class="dashboard-hero-tags">
-            <span>JWT en memoria</span>
-            <span>Exposicion look-through</span>
-            <span>Analisis multi-capa</span>
-          </div>
         </div>
 
         <div class="dashboard-hero-stats">
           <article class="hero-stat-card accent-teal">
-            <span>Carteras activas</span>
+            <span>Carteras</span>
             <strong>{{ portfolios().length }}</strong>
-            <small>Espacios listos para seguimiento</small>
+            <small>{{ portfolios().length === 1 ? 'Espacio de trabajo' : 'Espacios de trabajo' }}</small>
           </article>
           <article class="hero-stat-card accent-amber">
-            <span>ETFs monitorizados</span>
+            <span>ETFs en cartera</span>
             <strong>{{ populatedManualRowCount() }}</strong>
-            <small>Entradas editables en workbench</small>
+            <small>{{ populatedManualRowCount() === 1 ? 'Posicion guardada' : 'Posiciones guardadas' }}</small>
           </article>
           <article class="hero-stat-card accent-slate">
             <span>Watchlist</span>
             <strong>{{ service.favorites().length }}</strong>
-            <small>Tesis guardadas para comparar</small>
+            <small>ETFs para comparar</small>
           </article>
-          <article class="hero-stat-card accent-blue">
+          <article class="hero-stat-card accent-blue" *ngIf="analytics() as data">
             <span>Cobertura sectorial</span>
-            <strong>{{ analytics()?.sectorDataQuality?.coveragePercentage?.toFixed(1) || '0.0' }}%</strong>
-            <small>Calidad del mapeo actual</small>
+            <strong>{{ data.sectorDataQuality?.coveragePercentage?.toFixed(1) || '0.0' }}%</strong>
+            <small>Datos disponibles</small>
           </article>
         </div>
       </section>
@@ -112,24 +107,26 @@
 
       <section class="dashboard-empty-state elevated-panel" *ngIf="!activePortfolio()">
         <div>
-          <span class="eyebrow compact">Launchpad</span>
-          <h3>Crea tu primera cartera y empieza el analisis.</h3>
-          <p>
-            Define una cartera base, añade tus ETFs desde el workbench y desbloquea exposicion geografica, sectores, industrias y asignacion por ETF.
-          </p>
+          <span class="eyebrow compact">Empezar</span>
+          <h3>No tienes ninguna cartera todavia.</h3>
+          <p>Sigue estos pasos para empezar:</p>
         </div>
         <div class="dashboard-empty-grid">
-          <div>
-            <strong>1</strong>
-            <span>Crea una cartera con divisa base</span>
+          <div class="step-done" *ngIf="portfolios().length > 0">
+            <strong>✓</strong>
+            <span>Cartera creada</span>
           </div>
-          <div>
+          <div [class.step-active]="portfolios().length === 0">
+            <strong>1</strong>
+            <span>Ponle nombre a tu cartera y creala abajo</span>
+          </div>
+          <div [class.step-active]="portfolios().length > 0">
             <strong>2</strong>
-            <span>Añade posiciones manualmente</span>
+            <span>Añade los ETFs que tienes y su valor</span>
           </div>
           <div>
             <strong>3</strong>
-            <span>Explora el analisis look-through</span>
+            <span>Descubre tu exposicion geografica y sectorial</span>
           </div>
         </div>
       </section>
@@ -157,11 +154,16 @@
 
       <div class="portfolio-actions" id="portfolio-workbench" [class.section-focused]="isFocusedSection('portfolio-workbench')">
         <div class="portfolio-create elevated-panel">
-          <h3>Cartera</h3>
+          <div class="portfolio-create-header">
+            <span class="eyebrow compact">Paso 1</span>
+            <h3>Crea o selecciona tu cartera</h3>
+          </div>
           <div class="inline-form">
-            <input type="text" [value]="portfolioName" (input)="portfolioName = $any($event.target).value" placeholder="Mi cartera ETF">
-            <input class="currency-input" type="text" maxlength="3" [value]="portfolioCurrency" (input)="portfolioCurrency = $any($event.target).value.toUpperCase()">
-            <button class="btn-solid" [disabled]="portfolioLoading" (click)="createPortfolio()">Crear</button>
+            <input type="text" [value]="portfolioName" (input)="portfolioName = $any($event.target).value" placeholder="Nombre de la cartera">
+            <input class="currency-input" type="text" maxlength="3" [value]="portfolioCurrency" (input)="portfolioCurrency = $any($event.target).value.toUpperCase()" placeholder="EUR">
+            <button class="btn-solid" [disabled]="portfolioLoading || !portfolioName.trim()" (click)="createPortfolio()">
+              {{ portfolioLoading ? 'Creando...' : 'Crear cartera' }}
+            </button>
           </div>
           <div class="portfolio-tabs" *ngIf="portfolios().length > 0">
             <button class="portfolio-chip" *ngFor="let portfolio of portfolios()" [class.active]="portfolio.id === activePortfolioId()" (click)="selectPortfolio(portfolio.id)">
@@ -173,23 +175,23 @@
           </div>
         </div>
 
-        <div class="broker-import investment-table-card elevated-panel">
+        <div class="broker-import investment-table-card elevated-panel" *ngIf="activePortfolioId()">
           <div class="investment-table-header">
             <div>
-              <span class="eyebrow compact">Editable</span>
-              <h3>Lo que inviertes en ETFs</h3>
-              <p>Modifica libremente ETF y valor invertido. El backend identifica el ETF y usa sus participaciones para calcular exposicion geografica, sectorial, industrial y a empresas.</p>
+              <span class="eyebrow compact">Paso 2</span>
+              <h3>ETFs que tienes en tu cartera</h3>
+              <p>Escribe el ticker o nombre del ETF y el valor que tienes invertido. Cuando termines, pulsa "Guardar cartera".</p>
             </div>
             <div class="table-summary">
               <strong>{{ populatedManualRowCount() }}</strong>
-              <span>ETFs en tabla</span>
+              <span>{{ populatedManualRowCount() === 1 ? 'ETF' : 'ETFs' }}</span>
             </div>
           </div>
           <div class="manual-table">
             <p class="manual-table-note" *ngIf="manualRowsNotice">{{ manualRowsNotice }}</p>
             <div class="manual-head"><span>ETF o ticker</span><span>Valor invertido</span><span></span></div>
-            <div class="manual-row" *ngFor="let row of manualRows(); trackBy: trackByManualRow">
-              <input class="etf-name-input" type="text" [value]="row.etf" placeholder="Ej. IUSQ, MSCI ACWI, SPYD" (input)="updateManualRow(row.id, 'etf', $any($event.target).value)">
+            <div class="manual-row" *ngFor="let row of manualRows(); trackBy: trackByManualRow" [class.row-filled]="row.etf.trim().length > 0 && row.value.length > 0">
+              <input class="etf-name-input" type="text" [value]="row.etf" placeholder="Ej. IUSQ, VWCE, SPYD" (input)="updateManualRow(row.id, 'etf', $any($event.target).value)">
               <div class="money-cell">
                 <input type="number" min="0" step="0.01" [value]="row.value" placeholder="0.00" (input)="updateManualRow(row.id, 'value', $any($event.target).value)">
                 <span>{{ activePortfolio()?.baseCurrency || portfolioCurrency || 'EUR' }}</span>
@@ -199,12 +201,22 @@
           </div>
           <div class="table-actions">
             <button class="btn-add-row" type="button" (click)="addManualRow()">+ Añadir ETF</button>
-              <button class="btn-solid dark" [disabled]="importLoading || !activePortfolioId()" (click)="importManualInvestments()">
-                {{ importLoading ? 'Calculando...' : 'Añadir inversiones' }}
-              </button>
+            <button class="btn-solid dark" [disabled]="importLoading || !activePortfolioId()" (click)="importManualInvestments()">
+              {{ importLoading ? 'Guardando...' : 'Guardar cartera' }}
+            </button>
           </div>
           <p class="form-success" *ngIf="importMessage">{{ importMessage }}</p>
           <p class="form-error" *ngIf="importError">{{ importError }}</p>
+        </div>
+
+        <div class="broker-import investment-table-card elevated-panel no-portfolio-placeholder" *ngIf="!activePortfolioId() && portfolios().length > 0">
+          <div class="investment-table-header">
+            <div>
+              <span class="eyebrow compact">Paso 2</span>
+              <h3>Selecciona una cartera para empezar</h3>
+              <p>Elige una cartera de las que tienes arriba y podras añadir o editar tus ETFs.</p>
+            </div>
+          </div>
         </div>
       </div>
 
