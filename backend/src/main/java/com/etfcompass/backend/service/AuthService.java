@@ -89,19 +89,11 @@ public class AuthService {
     user.setPasswordResetCodeHash(passwordEncoder.encode(code));
     user.setPasswordResetCodeExpiresAt(Instant.now().plusSeconds(securityProperties.passwordResetCodeExpirationMinutes() * 60));
 
-    try {
-      passwordResetDeliveryService.sendPasswordResetCode(
-          user.getEmail(),
-          user.getDisplayName(),
-          code,
-          securityProperties.passwordResetCodeExpirationMinutes());
-    } catch (RuntimeException ex) {
-      String message = ex.getMessage();
-      if (message != null && message.contains("Mail server connection failed")) {
-        throw new BadRequestException("No se pudo conectar con el servidor de correo. Revisa la configuracion SMTP.");
-      }
-      throw new BadRequestException("No se pudo enviar el correo de recuperacion. Intentalo otra vez.");
-    }
+    passwordResetDeliveryService.sendPasswordResetCode(
+        user.getEmail(),
+        user.getDisplayName(),
+        code,
+        securityProperties.passwordResetCodeExpirationMinutes());
   }
 
   private void validateResetCode(AppUser user, String code) {

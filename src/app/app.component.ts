@@ -486,7 +486,7 @@ export class AppComponent implements OnInit {
         this.authResetStep = 'confirm';
         this.authResetCode = '';
         this.authResetPassword = '';
-        this.authMessage = 'Si existe una cuenta con ese email, te hemos enviado un codigo de 6 digitos.';
+        this.authMessage = 'Codigo generado correctamente. Revisa los logs del servidor para obtener el codigo de recuperacion.';
       },
       error: err => {
         this.authLoading = false;

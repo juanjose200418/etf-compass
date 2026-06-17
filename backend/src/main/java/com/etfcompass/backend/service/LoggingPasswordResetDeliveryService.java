@@ -7,11 +7,19 @@ public class LoggingPasswordResetDeliveryService implements PasswordResetDeliver
 
   @Override
   public void sendPasswordResetCode(String email, String displayName, String code, long expirationMinutes) {
-    log.warn(
-        "SMTP is not configured. Password reset code for {} ({}): {}. Expires in {} minutes.",
-        displayName,
-        email,
-        code,
-        expirationMinutes);
+    String maskedEmail = maskEmail(email);
+    log.info("Password reset code generated for {}: {}. Expires in {} minutes. Use this code in the reset form.",
+        maskedEmail, code, expirationMinutes);
+  }
+
+  private static String maskEmail(String email) {
+    if (email == null || !email.contains("@")) return email;
+    int atIndex = email.indexOf('@');
+    String localPart = email.substring(0, atIndex);
+    String domain = email.substring(atIndex);
+    if (localPart.length() <= 2) {
+      return localPart.charAt(0) + "***" + domain;
+    }
+    return localPart.substring(0, 2) + "***" + domain;
   }
 }
