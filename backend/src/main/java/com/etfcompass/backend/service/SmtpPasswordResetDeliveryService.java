@@ -3,6 +3,7 @@ package com.etfcompass.backend.service;
 import com.etfcompass.backend.config.MailProperties;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 
@@ -30,8 +31,17 @@ public class SmtpPasswordResetDeliveryService implements PasswordResetDeliverySe
       helper.setText(buildHtmlBody(displayName, code, expirationMinutes), true);
       mailSender.send(message);
       log.info("Password reset email sent to {}", email);
+    } catch (MailSendException e) {
+      String rootCause = e.getRootCause() != null ? e.getRootCause().getClass().getSimpleName() : "unknown";
+      log.error("SMTP {} to {}: {}. Check SMTP_HOST={}, SMTP_PORT={}, SMTP_SMTP_SSL={}, SMTP_SMTP_STARTTLS={}",
+          rootCause, email, e.getRootCause() != null ? e.getRootCause().getMessage() : e.getMessage(),
+          System.getenv("SMTP_HOST"), System.getenv("SMTP_PORT"),
+          System.getenv("SMTP_SMTP_SSL"), System.getenv("SMTP_SMTP_STARTTLS"));
+      throw new RuntimeException("Mail server connection failed", e);
     } catch (Exception e) {
-      log.error("Failed to send password reset email to {}: {}", email, e.getMessage());
+      log.error("SMTP error for {}: {} ({}). Check SMTP_HOST={}, SMTP_PORT={}.",
+          email, e.getMessage(), e.getClass().getSimpleName(),
+          System.getenv("SMTP_HOST"), System.getenv("SMTP_PORT"));
       throw new RuntimeException("Failed to send password reset email", e);
     }
   }
