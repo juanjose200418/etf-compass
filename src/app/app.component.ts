@@ -668,33 +668,55 @@ export class AppComponent implements OnInit {
   importManualInvestments(): void {
     const portfolioId = this.activePortfolioId();
     const currency = this.activePortfolio()?.baseCurrency || this.portfolioCurrency || 'EUR';
-    const rows = this.manualRows()
-      .map(row => ({ etf: row.etf.trim(), value: Number(row.value.replace(',', '.')) }))
+
+    const allRows = this.manualRows()
+      .map(row => ({
+        id: row.id,
+        etf: row.etf.trim(),
+        value: Number(row.value.replace(',', '.')),
+        positionId: row.positionId
+      }))
       .filter(row => row.etf.length > 0 && Number.isFinite(row.value) && row.value > 0);
 
     if (!portfolioId) {
       this.importError = 'Crea o selecciona una cartera primero.';
       return;
     }
-    if (rows.length === 0) {
+    if (allRows.length === 0) {
       this.importError = 'Escribe al menos un ETF con un valor mayor que 0 para guardar la cartera.';
       return;
     }
+
     this.importLoading = true;
     this.importMessage = null;
     this.importError = null;
-    this.portfolioApi.addManualPositions(portfolioId, rows.map(row => ({ ticker: row.etf, value: row.value, currency }))).subscribe({
-      next: createdPositions => {
+
+    const existing = allRows.filter(r => r.positionId);
+    const newRows = allRows.filter(r => !r.positionId);
+
+    const updates$ = existing.map(r =>
+      this.portfolioApi.updatePosition(r.positionId!, r.etf, r.value, currency)
+    );
+    const creates$ = newRows.length > 0
+      ? [this.portfolioApi.addManualPositions(portfolioId, newRows.map(r => ({ ticker: r.etf, value: r.value, currency })))]
+      : [];
+
+    if (updates$.length === 0 && creates$.length === 0) {
+      this.importLoading = false;
+      return;
+    }
+
+    forkJoin([...updates$, ...creates$]).subscribe({
+      next: () => {
         this.importLoading = false;
-        this.importMessage = createdPositions.length === 1
-          ? 'Cartera guardada con 1 ETF.'
-          : `Cartera guardada con ${createdPositions.length} ETFs.`;
+        const total = allRows.length;
+        this.importMessage = total === 1 ? 'Cartera guardada.' : `Cartera guardada (${total} ETFs).`;
         this.cdr.markForCheck();
         this.refreshPortfolioData();
       },
       error: err => {
         this.importLoading = false;
-        this.importError = this.errorMessage(err, 'No se pudieron guardar los ETFs. Revisa los tickers e intentalo otra vez.');
+        this.importError = this.errorMessage(err, 'No se pudieron guardar los cambios. Revisa los tickers e intentalo otra vez.');
         this.cdr.markForCheck();
       }
     });

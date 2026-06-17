@@ -191,28 +191,13 @@
           </div>
           <div class="manual-table">
             <p class="manual-table-note" *ngIf="manualRowsNotice">{{ manualRowsNotice }}</p>
-            <div class="manual-head"><span>ETF</span><span>Invertido</span><span>Valor actual</span><span>P&L</span><span></span></div>
-            <div class="manual-row" *ngFor="let row of manualRows(); trackBy: trackByManualRow" [class.row-filled]="row.etf.trim().length > 0 && row.value.length > 0" [class.is-position]="!!row.positionId">
+            <div class="manual-head"><span>ETF</span><span>Invertido</span><span></span></div>
+            <div class="manual-row" *ngFor="let row of manualRows(); trackBy: trackByManualRow" [class.row-filled]="row.etf.trim().length > 0 && row.value.length > 0">
               <input class="etf-name-input" type="text" [value]="row.etf" placeholder="Ej. IUSQ, VWCE, SPYD" (input)="updateManualRow(row.id, 'etf', $any($event.target).value)">
               <div class="money-cell">
                 <input type="number" min="0" step="0.01" [value]="row.value" placeholder="0.00" (input)="updateManualRow(row.id, 'value', $any($event.target).value)">
                 <span>{{ row.currency || activePortfolio()?.baseCurrency || portfolioCurrency || 'EUR' }}</span>
               </div>
-              <div class="stat-cell" *ngIf="row.positionId; else pendingValue">
-                <strong>{{ formatMoney(row.currentValue ?? 0, row.currency || 'EUR') }}</strong>
-              </div>
-              <ng-template #pendingValue>
-                <div class="stat-cell pending">—</div>
-              </ng-template>
-              <div class="stat-cell" *ngIf="row.positionId; else pendingPl">
-                <span [class.negative]="(row.profitLoss ?? 0) < 0">
-                  {{ formatMoney(row.profitLoss ?? 0, row.currency || 'EUR') }}
-                </span>
-                <small>{{ formatPercentValue(row.profitLossPercentage ?? 0) }}</small>
-              </div>
-              <ng-template #pendingPl>
-                <div class="stat-cell pending">—</div>
-              </ng-template>
               <button class="btn-mini" type="button" (click)="removeManualRow(row.id)" [title]="row.positionId ? 'Eliminar de la cartera' : 'Quitar fila'">×</button>
             </div>
           </div>
