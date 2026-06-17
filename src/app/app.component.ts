@@ -469,6 +469,7 @@ export class AppComponent implements OnInit {
             ? 'No se pudo iniciar sesion. Revisa tus credenciales.'
             : 'No se pudo crear la cuenta. Revisa email, nombre y password.'
         );
+        this.cdr.markForCheck();
       }
     });
   }
@@ -493,6 +494,7 @@ export class AppComponent implements OnInit {
       error: err => {
         this.authLoading = false;
         this.authError = this.errorMessage(err, 'No se pudo enviar el codigo de recuperacion.');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -519,6 +521,7 @@ export class AppComponent implements OnInit {
       error: err => {
         this.authLoading = false;
         this.authError = this.errorMessage(err, 'No se pudo restablecer la password. Revisa el codigo e intentalo otra vez.');
+        this.cdr.markForCheck();
       }
     });
   }
