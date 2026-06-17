@@ -169,8 +169,6 @@ export class AppComponent implements OnInit {
   private historyRequestId = 0;
   private historySubscription: Subscription | null = null;
 
-
-
   // ── Computed best values ──
 
   private bestValues = computed<BestValues | null>(() => {
@@ -390,19 +388,7 @@ export class AppComponent implements OnInit {
     return data ? data.lines.flatMap(line => line.points.map(point => ({ ...point, color: line.color }))) : [];
   });
 
-  readonly zeroLineHistoryY = computed<number | null>(() => {
-    const data = this.historyChartData();
-    if (!data || data.minPercent >= 0 || data.maxPercent <= 0) return null;
-    const spread = data.maxPercent - data.minPercent || 1;
-    const pad = spread * 0.1;
-    const yStart = 28;
-    const yEnd = 232;
-    return yStart + ((data.maxPercent + pad - 0) / (spread + pad * 2)) * (yEnd - yStart);
-  });
-
   ngOnInit(): void {
-    this.service.loadAllETFs();
-
     if (this.isDashboardRoute() && this.isAuthenticated()) {
       this.refreshPortfolioData();
     }
