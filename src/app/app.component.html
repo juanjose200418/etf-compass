@@ -156,12 +156,23 @@
         <div class="portfolio-create elevated-panel">
           <div class="portfolio-create-header">
             <span class="eyebrow compact">Paso 1</span>
-            <h3>Crea o selecciona tu cartera</h3>
+            <h3>Crea tu cartera</h3>
           </div>
-          <div class="inline-form">
-            <input type="text" [value]="portfolioName" (input)="portfolioName = $any($event.target).value" placeholder="Nombre de la cartera">
-            <input class="currency-input" type="text" maxlength="3" [value]="portfolioCurrency" (input)="portfolioCurrency = $any($event.target).value.toUpperCase()" placeholder="EUR">
-            <button class="btn-solid" [disabled]="portfolioLoading || !portfolioName.trim()" (click)="createPortfolio()">
+          <div class="portfolio-create-body">
+            <div class="name-field">
+              <label>Nombre</label>
+              <input type="text" [value]="portfolioName" (input)="portfolioName = $any($event.target).value" placeholder="Mi cartera">
+            </div>
+            <div class="currency-field">
+              <label>Divisa</label>
+              <div class="currency-tabs">
+                <button type="button" class="currency-tab" *ngFor="let c of currencies" [class.active]="portfolioCurrency === c.code" (click)="portfolioCurrency = c.code">
+                  <span class="currency-symbol">{{ c.symbol }}</span>
+                  <span class="currency-code">{{ c.code }}</span>
+                </button>
+              </div>
+            </div>
+            <button class="btn-solid create-btn" [disabled]="portfolioLoading || !portfolioName.trim()" (click)="createPortfolio()">
               {{ portfolioLoading ? 'Creando...' : 'Crear cartera' }}
             </button>
           </div>

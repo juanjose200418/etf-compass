@@ -107,6 +107,13 @@ export class AppComponent implements OnInit {
     '5Y': '5 Years'
   };
   readonly MAX_COMPARE = 4;
+  readonly currencies = [
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+    { code: 'USD', symbol: '$', name: 'Dolar' },
+    { code: 'GBP', symbol: '£', name: 'Libra' },
+    { code: 'CHF', symbol: 'Fr', name: 'Franco' },
+    { code: 'SEK', symbol: 'kr', name: 'Corona' },
+  ];
 
   searchOpen = false;
   activeSearchIndex = -1;
