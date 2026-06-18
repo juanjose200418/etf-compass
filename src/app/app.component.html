@@ -462,7 +462,7 @@
         Password
         <div class="password-field">
           <input [type]="authPasswordVisible ? 'text' : 'password'" [value]="authPassword" (input)="authPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="submitAuth()">
-          <button class="password-toggle" type="button" (click)="toggleAuthPasswordVisibility()" [attr.aria-label]="authPasswordVisible ? 'Ocultar password' : 'Mostrar password'">{{ authPasswordVisible ? '🙈' : '👁️' }}</button>
+          <button class="password-toggle" type="button" (click)="toggleAuthPasswordVisibility()" [attr.aria-label]="authPasswordVisible ? 'Ocultar password' : 'Mostrar password'"><svg *ngIf="authPasswordVisible" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="4" y1="4" x2="20" y2="20"/></svg><svg *ngIf="!authPasswordVisible" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </label>
 
@@ -486,7 +486,7 @@
           Nueva password
           <div class="password-field">
             <input [type]="authResetPasswordVisible ? 'text' : 'password'" [value]="authResetPassword" (input)="authResetPassword = $any($event.target).value" placeholder="Minimo 8 caracteres" (keydown.enter)="confirmPasswordReset()">
-            <button class="password-toggle" type="button" (click)="toggleResetPasswordVisibility()" [attr.aria-label]="authResetPasswordVisible ? 'Ocultar password' : 'Mostrar password'">{{ authResetPasswordVisible ? '🙈' : '👁️' }}</button>
+            <button class="password-toggle" type="button" (click)="toggleResetPasswordVisibility()" [attr.aria-label]="authResetPasswordVisible ? 'Ocultar password' : 'Mostrar password'"><svg *ngIf="authResetPasswordVisible" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="4" y1="4" x2="20" y2="20"/></svg><svg *ngIf="!authResetPasswordVisible" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
           </div>
         </label>
       </ng-container>
