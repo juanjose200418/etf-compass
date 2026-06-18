@@ -1943,4 +1943,20 @@
   .allocation-percent {
     justify-self: start;
   }
+
+  .header-actions .ad-button {
+    order: -1;
+    width: 100%;
+    text-align: center;
+  }
+
+  .promo-modal {
+    padding: 0;
+  }
+
+  .promo-frame-wrap iframe {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 }
