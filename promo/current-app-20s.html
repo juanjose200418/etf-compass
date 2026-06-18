@@ -679,6 +679,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
   </style>
 </head>
 <body>
@@ -913,9 +914,13 @@
     // HyperFrames seeks the paused GSAP timeline itself. Direct browser/Angular
     // preview still autoplays so the app's "Ver anuncio" button works.
     if (typeof window.__HYPERFRAMES__ === "undefined") {
+      const root = document.querySelector(".composition");
       const fitComposition = () => {
-        const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-        document.querySelector(".composition").style.transform = `scale(${scale})`;
+        const usableW = window.innerWidth;
+        const usableH = window.innerHeight;
+        const scale = Math.min(usableW / 1920, usableH / 1080);
+        root.style.transform = `scale(${scale})`;
+        root.style.transformOrigin = "center center";
       };
 
       fitComposition();
