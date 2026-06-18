@@ -142,6 +142,11 @@ export class AppComponent implements OnInit {
     country: false,
     etf: false
   };
+  coverageDetailExpanded: Record<'industry' | 'sector' | 'country', boolean> = {
+    industry: false,
+    sector: false,
+    country: false
+  };
   focusedSectionId: string | null = null;
 
   portfolioName = 'Mi cartera ETF';
@@ -798,6 +803,13 @@ export class AppComponent implements OnInit {
     this.analyticsExpanded = {
       ...this.analyticsExpanded,
       [section]: !this.analyticsExpanded[section]
+    };
+  }
+
+  toggleCoverageDetail(section: 'industry' | 'sector' | 'country'): void {
+    this.coverageDetailExpanded = {
+      ...this.coverageDetailExpanded,
+      [section]: !this.coverageDetailExpanded[section]
     };
   }
 

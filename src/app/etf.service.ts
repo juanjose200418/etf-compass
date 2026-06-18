@@ -2,7 +2,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { finalize } from 'rxjs';
 import { ETF } from './types';
 import { EtfApiService } from './etf-api.service';
-import { POPULAR_ETFS } from './popular-etfs';
+import { POPULAR_ETFS, ETF_ALIASES } from './popular-etfs';
 
 @Injectable({ providedIn: 'root' })
 export class EtfService {
@@ -27,9 +27,15 @@ export class EtfService {
   readonly searchResults = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
     if (q.length < 1) return [];
-    return this.popularETFs.filter(
-      etf => etf.ticker.toLowerCase().includes(q) || etf.name.toLowerCase().includes(q)
-    ).slice(0, 20);
+    const seen = new Set<string>();
+    return this.popularETFs.filter(etf => {
+      const ticker = etf.ticker.toLowerCase();
+      const name = etf.name.toLowerCase();
+      const aliases = ETF_ALIASES[ticker] ?? [];
+      const match = ticker.includes(q) || name.includes(q) || aliases.some(a => a.includes(q));
+      if (match) seen.add(ticker);
+      return match;
+    }).slice(0, 20);
   });
 
   constructor() {

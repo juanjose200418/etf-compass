@@ -47,4 +47,24 @@ export const POPULAR_ETFS: { ticker: string; name: string }[] = [
   { ticker: 'SOXX', name: 'iShares Semiconductor ETF' },
   { ticker: 'VNQ', name: 'Vanguard Real Estate ETF' },
   { ticker: 'IYR', name: 'iShares US Real Estate ETF' },
+  { ticker: 'IUSQ', name: 'iShares MSCI ACWI UCITS ETF' },
+  { ticker: 'VGVF', name: 'Vanguard FTSE Developed World UCITS ETF' },
+  { ticker: 'IUSN', name: 'iShares MSCI World Small Cap UCITS ETF' },
+  { ticker: 'NUKL', name: 'VanEck Uranium and Nuclear Technologies UCITS ETF' },
+  { ticker: 'EEMA', name: 'iShares MSCI EM Asia UCITS ETF' },
+  { ticker: 'XDWT', name: 'iShares MSCI World Information Technology UCITS ETF' },
+  { ticker: 'CQQQ', name: 'Invesco China Technology ETF' },
+  { ticker: 'ICOM', name: 'iShares Diversified Commodity Swap UCITS ETF' },
 ];
+
+export const ETF_ALIASES: Record<string, string[]> = {
+  'IUSQ': ['msci acwi', 'acwi world'],
+  'VGVF': ['ftse developed world', 'developed world'],
+  'IUSN': ['msci world small cap', 'world small cap'],
+  'SPYD': ['s&p u.s. dividend aristocrats', 'dividend aristocrats'],
+  'NUKL': ['uranium and nuclear technologies', 'uranium etf', 'nuclear etf'],
+  'ICOM': ['diversified commodities', 'commodities'],
+  'EEMA': ['msci em asia', 'emerging asia'],
+  'XDWT': ['msci world information technology', 'world tech'],
+  'CQQQ': ['msci china tech', 'china technology'],
+};

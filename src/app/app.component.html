@@ -228,9 +228,9 @@
       <p class="form-error" *ngIf="portfolioError">{{ portfolioError }}</p>
 
       <div class="analytics-grid" *ngIf="analytics() as data">
-        <article class="analysis-note">
-          <strong>Precision de exposiciones</strong>
-          <span>Los sectores, industrias y geografías se calculan con metadata ETF ponderada y, cuando hay holdings suficientes, con desglose real por posiciones. Si falta cobertura del proveedor, lo veras marcado como Unclassified en lugar de esconderse como Other.</span>
+        <article class="analysis-disclaimer">
+          <strong>ℹ️</strong>
+          <span>Los datos se calculan combinando holdings reales y estimaciones cuando la API pública no ofrece cobertura completa. Al usar Finnhub como API pública/gratuita, los resultados pueden no ser 100% exactos.</span>
         </article>
         <article class="analysis-card interactive-panel" id="industry-panel" [class.expanded]="analyticsExpanded.industry" [class.section-focused]="isFocusedSection('industry-panel')">
           <div class="analysis-card-head">
@@ -242,15 +242,18 @@
               {{ analyticsExpanded.industry ? 'Ver menos' : 'Ver todas' }}
             </button>
           </div>
-           <div class="analysis-quality" *ngIf="data.industryDataQuality as quality">
-            <span class="quality-badge coverage">Cobertura: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
-            <span class="quality-badge lookthrough">Real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
-            <span class="quality-badge estimated">Estimado: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
-          </div>
-          <div class="analysis-warning" *ngIf="dataQualityWarning('industry', data.industryDataQuality) as warning">
-            <strong>Warning</strong>
-            <p>{{ warning }}</p>
-          </div>
+           <div class="analysis-summary" *ngIf="data.industryDataQuality as quality">
+             <div class="summary-bar">
+               <i class="summary-fill lookthrough" [style.width.%]="quality.lookThroughCoveragePercentage"></i>
+               <i class="summary-fill estimated" [style.width.%]="quality.estimatedPercentage"></i>
+               <i class="summary-fill unclassified" [style.width.%]="quality.unclassifiedPercentage"></i>
+             </div>
+             <div class="summary-legend">
+               <span class="legend-item lookthrough">Real <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
+               <span class="legend-item estimated">Estimado <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
+               <span class="legend-item unclassified">Sin clasificar <strong>{{ quality.unclassifiedPercentage.toFixed(1) }}%</strong></span>
+             </div>
+           </div>
           <div class="analysis-scroll">
             <div class="allocation-row" *ngFor="let item of visibleSlices('industry', data.industryExposure); trackBy: trackByLabel">
               <div class="allocation-meta">
@@ -260,20 +263,23 @@
               <div class="bar-track"><i class="bar-fill" [style.width]="barWidth(item.percentage)"></i></div>
             </div>
           </div>
-          <div class="analysis-unclassified" *ngFor="let item of unclassifiedSlices(data.industryExposure)">
-            <strong>{{ formatAllocationLabel(item.label, 'industry') }}</strong>
-            <span>{{ item.percentage.toFixed(1) }}%</span>
-            <p>Incluye holdings o pesos residuales que el proveedor no pudo clasificar con mas detalle.</p>
-            <div class="analysis-issues compact" *ngIf="data.industryDataQuality.affectedEtfs.length > 0">
-              <div class="analysis-issue" *ngFor="let issue of data.industryDataQuality.affectedEtfs">
-                <div>
-                  <span>{{ issue.ticker }}</span>
-                  <em>{{ issue.unclassifiedPortfolioPercentage.toFixed(1) }}% sin clasificar · fuente {{ issue.sourceType }}</em>
-                </div>
-                <p>{{ issue.reason }}</p>
-              </div>
-            </div>
-          </div>
+           <div class="analysis-unclassified" *ngFor="let item of unclassifiedSlices(data.industryExposure)">
+             <strong>{{ formatAllocationLabel(item.label, 'industry') }}</strong>
+             <span>{{ item.percentage.toFixed(1) }}%</span>
+             <p>Incluye holdings o pesos residuales que el proveedor no pudo clasificar con mas detalle.</p>
+           </div>
+           <button class="coverage-detail-toggle" type="button" *ngIf="data.industryDataQuality.affectedEtfs.length > 0" (click)="toggleCoverageDetail('industry')">
+             {{ coverageDetailExpanded.industry ? 'Ocultar detalle por ETF' : 'Ver detalle de cobertura por ETF' }}
+           </button>
+           <div class="coverage-detail" *ngIf="coverageDetailExpanded.industry && data.industryDataQuality.affectedEtfs.length > 0">
+             <div class="analysis-issue" *ngFor="let issue of data.industryDataQuality.affectedEtfs">
+               <div>
+                 <span>{{ issue.ticker }}</span>
+                 <em>{{ issue.unclassifiedPortfolioPercentage.toFixed(1) }}% sin clasificar · fuente {{ issue.sourceType }}</em>
+               </div>
+               <p>{{ issue.reason }}</p>
+             </div>
+           </div>
         </article>
 
         <article class="analysis-card interactive-panel" id="sector-panel" [class.expanded]="analyticsExpanded.sector" [class.section-focused]="isFocusedSection('sector-panel')">
@@ -286,23 +292,16 @@
               {{ analyticsExpanded.sector ? 'Ver menos' : 'Ver todos' }}
             </button>
           </div>
-          <div class="analysis-quality" *ngIf="data.sectorDataQuality as quality">
-            <span class="quality-badge coverage">Cobertura: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
-            <span class="quality-badge lookthrough">Real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
-            <span class="quality-badge estimated">Estimado: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
-          </div>
-          <div class="analysis-warning" *ngIf="sectorCoverageWarning(data) as warning">
-            <strong>Warning</strong>
-            <p>{{ warning }}</p>
-          </div>
-          <div class="analysis-issues" *ngIf="hasSignificantSectorGap(data) && data.sectorDataQuality.affectedEtfs.length > 0">
-            <strong>ETFs con menor precision sectorial</strong>
-            <div class="analysis-issue" *ngFor="let issue of data.sectorDataQuality.affectedEtfs">
-              <div>
-                <span>{{ issue.ticker }}</span>
-                <em>{{ issue.portfolioPercentage.toFixed(1) }}% de la cartera · cobertura holdings {{ issue.holdingCoveragePercentage.toFixed(1) }}%</em>
-              </div>
-              <p>{{ issue.reason }}</p>
+          <div class="analysis-summary" *ngIf="data.sectorDataQuality as quality">
+            <div class="summary-bar">
+              <i class="summary-fill lookthrough" [style.width.%]="quality.lookThroughCoveragePercentage"></i>
+              <i class="summary-fill estimated" [style.width.%]="quality.estimatedPercentage"></i>
+              <i class="summary-fill unclassified" [style.width.%]="quality.unclassifiedPercentage"></i>
+            </div>
+            <div class="summary-legend">
+              <span class="legend-item lookthrough">Real <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
+              <span class="legend-item estimated">Estimado <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
+              <span class="legend-item unclassified">Sin clasificar <strong>{{ quality.unclassifiedPercentage.toFixed(1) }}%</strong></span>
             </div>
           </div>
           <div class="analysis-scroll">
@@ -327,15 +326,18 @@
           <div class="analysis-unclassified" *ngFor="let item of unclassifiedSlices(data.sectorExposure)">
             <strong>{{ formatAllocationLabel(item.label, 'sector') }}</strong>
             <span>{{ item.percentage.toFixed(1) }}%</span>
-            <p>This percentage includes holdings that could not be classified due to missing provider data or incomplete ETF look-through metadata.</p>
-            <div class="analysis-issues compact" *ngIf="data.sectorDataQuality.affectedEtfs.length > 0">
-              <div class="analysis-issue" *ngFor="let issue of data.sectorDataQuality.affectedEtfs">
-                <div>
-                  <span>{{ issue.ticker }}</span>
-                  <em>{{ issue.unclassifiedPortfolioPercentage.toFixed(1) }}% sin clasificar · fuente {{ issue.sourceType }}</em>
-                </div>
-                <p>{{ issue.reason }}</p>
+            <p>Incluye holdings o pesos que el proveedor no pudo clasificar en un sector concreto.</p>
+          </div>
+          <button class="coverage-detail-toggle" type="button" *ngIf="data.sectorDataQuality.affectedEtfs.length > 0" (click)="toggleCoverageDetail('sector')">
+            {{ coverageDetailExpanded.sector ? 'Ocultar detalle por ETF' : 'Ver detalle de cobertura por ETF' }}
+          </button>
+          <div class="coverage-detail" *ngIf="coverageDetailExpanded.sector && data.sectorDataQuality.affectedEtfs.length > 0">
+            <div class="analysis-issue" *ngFor="let issue of data.sectorDataQuality.affectedEtfs">
+              <div>
+                <span>{{ issue.ticker }}</span>
+                <em>{{ issue.unclassifiedPortfolioPercentage.toFixed(1) }}% sin clasificar · fuente {{ issue.sourceType }}</em>
               </div>
+              <p>{{ issue.reason }}</p>
             </div>
           </div>
         </article>
@@ -350,14 +352,17 @@
               {{ analyticsExpanded.country ? 'Ver menos' : 'Ver toda' }}
             </button>
           </div>
-          <div class="analysis-quality" *ngIf="data.countryDataQuality as quality">
-            <span class="quality-badge coverage">Cobertura: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
-            <span class="quality-badge lookthrough">Real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
-            <span class="quality-badge estimated">Estimado: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
-          </div>
-          <div class="analysis-warning" *ngIf="dataQualityWarning('geography', data.countryDataQuality) as warning">
-            <strong>Warning</strong>
-            <p>{{ warning }}</p>
+          <div class="analysis-summary" *ngIf="data.countryDataQuality as quality">
+            <div class="summary-bar">
+              <i class="summary-fill lookthrough" [style.width.%]="quality.lookThroughCoveragePercentage"></i>
+              <i class="summary-fill estimated" [style.width.%]="quality.estimatedPercentage"></i>
+              <i class="summary-fill unclassified" [style.width.%]="quality.unclassifiedPercentage"></i>
+            </div>
+            <div class="summary-legend">
+              <span class="legend-item lookthrough">Real <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
+              <span class="legend-item estimated">Estimado <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
+              <span class="legend-item unclassified">Sin clasificar <strong>{{ quality.unclassifiedPercentage.toFixed(1) }}%</strong></span>
+            </div>
           </div>
           <div class="analysis-scroll">
             <div class="allocation-row" *ngFor="let item of visibleSlices('country', data.countryExposure); trackBy: trackByLabel">
@@ -372,14 +377,17 @@
             <strong>{{ formatAllocationLabel(item.label, 'country') }}</strong>
             <span>{{ item.percentage.toFixed(1) }}%</span>
             <p>Esta parte no pudo asignarse a un pais o region concreta con los datos del proveedor.</p>
-            <div class="analysis-issues compact" *ngIf="data.countryDataQuality.affectedEtfs.length > 0">
-              <div class="analysis-issue" *ngFor="let issue of data.countryDataQuality.affectedEtfs">
-                <div>
-                  <span>{{ issue.ticker }}</span>
-                  <em>{{ issue.unclassifiedPortfolioPercentage.toFixed(1) }}% sin clasificar · fuente {{ issue.sourceType }}</em>
-                </div>
-                <p>{{ issue.reason }}</p>
+          </div>
+          <button class="coverage-detail-toggle" type="button" *ngIf="data.countryDataQuality.affectedEtfs.length > 0" (click)="toggleCoverageDetail('country')">
+            {{ coverageDetailExpanded.country ? 'Ocultar detalle por ETF' : 'Ver detalle de cobertura por ETF' }}
+          </button>
+          <div class="coverage-detail" *ngIf="coverageDetailExpanded.country && data.countryDataQuality.affectedEtfs.length > 0">
+            <div class="analysis-issue" *ngFor="let issue of data.countryDataQuality.affectedEtfs">
+              <div>
+                <span>{{ issue.ticker }}</span>
+                <em>{{ issue.unclassifiedPortfolioPercentage.toFixed(1) }}% sin clasificar · fuente {{ issue.sourceType }}</em>
               </div>
+              <p>{{ issue.reason }}</p>
             </div>
           </div>
         </article>
@@ -551,9 +559,9 @@
         <h2>Add ETF</h2>
       </div>
       <div class="search-container">
-        <input type="text" placeholder="Type a ticker (e.g. SPY, VOO) or name…" autocomplete="off" aria-label="Search ETFs"
+        <input type="text" placeholder="Busca por ticker (ej. IUSQ, SPY, VOO) o nombre…" autocomplete="off" aria-label="Search ETFs"
                (input)="onSearchInput($any($event.target).value)" (focus)="onSearchFocus()" (keydown)="onSearchKeydown($event)">
-        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.375rem;">Press Enter to try any ticker directly</p>
+        <p class="search-hint">Usa el <strong>ticker</strong> del ETF para obtener datos precisos. Ej: MSCI ACWI → <strong>IUSQ</strong>, FTSE World → <strong>VGVF</strong>, Dividend Aristocrats → <strong>SPYD</strong>. Pulsa Enter para probar cualquier ticker directamente.</p>
 
         <div class="search-results" [class.open]="searchOpen && service.searchResults().length > 0">
           <div class="search-item" *ngFor="let r of service.searchResults(); let i = index"
@@ -581,7 +589,7 @@
 
         <div *ngIf="searchOpen && service.searchQuery().trim().length >= 1 && service.searchResults().length === 0" class="search-results open">
           <div class="search-empty">
-            Not in the list. Press <strong>Enter</strong> to try "{{ service.searchQuery().trim().toUpperCase() }}" directly.
+            Este ETF no está disponible en la API pública o requiere un ticker más específico. Pulsa <strong>Enter</strong> para probar "{{ service.searchQuery().trim().toUpperCase() }}" directamente.
           </div>
         </div>
       </div>
