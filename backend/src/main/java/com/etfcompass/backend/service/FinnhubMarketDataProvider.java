@@ -7,6 +7,8 @@ import com.etfcompass.backend.dto.etf.EtfHistoryResponse;
 import com.etfcompass.backend.dto.etf.EtfResponse;
 import com.etfcompass.backend.dto.etf.PerformanceResponse;
 import com.etfcompass.backend.dto.etf.QuoteSnapshotResponse;
+import com.etfcompass.backend.dto.marketdata.EtfListResponse;
+import com.etfcompass.backend.dto.marketdata.FinnhubEtfListItem;
 import com.etfcompass.backend.exception.BadRequestException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +20,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -154,6 +157,46 @@ public class FinnhubMarketDataProvider extends BaseMarketDataProvider implements
     }
 
     return new EtfHistoryResponse(normalized, range.apiValue(), points);
+  }
+
+  private static final long CACHE_TTL_MS = 300_000; // 5 minutos
+  private volatile List<FinnhubEtfListItem> cachedEtfList;
+  private volatile long cacheTimestamp;
+
+  public EtfListResponse fetchEtfList() {
+    if (!isConfigured()) {
+      throw new BadRequestException("Missing FINNHUB_API_KEY. Configure a valid Finnhub token in the backend environment.");
+    }
+
+    long now = System.currentTimeMillis();
+    if (cachedEtfList != null && (now - cacheTimestamp) < CACHE_TTL_MS) {
+      return new EtfListResponse(cachedEtfList, cachedEtfList.size(), "Finnhub (cache)", Instant.ofEpochMilli(cacheTimestamp).toString());
+    }
+
+    RestClient client = restClientBuilder.baseUrl(BASE_URL).build();
+    List<String> warnings = new ArrayList<>();
+    JsonNode data = requestJson(client, "/api/v1/etf/list", Map.of(), "token", properties.finnhubApiKey(), true, warnings, "ETF list");
+
+    List<FinnhubEtfListItem> items = new ArrayList<>();
+    if (data != null && data.isArray()) {
+      for (JsonNode node : data) {
+        String symbol = firstTextOrNull(node, "symbol");
+        if (symbol == null) continue;
+        items.add(new FinnhubEtfListItem(
+            symbol,
+            firstTextOrNull(node, "name"),
+            firstTextOrNull(node, "type"),
+            firstTextOrNull(node, "mic"),
+            firstTextOrNull(node, "figi"),
+            firstTextOrNull(node, "isin"),
+            firstTextOrNull(node, "currency")
+        ));
+      }
+    }
+
+    cachedEtfList = items;
+    cacheTimestamp = now;
+    return new EtfListResponse(items, items.size(), "Finnhub", Instant.ofEpochMilli(now).toString());
   }
 
   private JsonNode findSearchMatch(JsonNode search, String ticker) {

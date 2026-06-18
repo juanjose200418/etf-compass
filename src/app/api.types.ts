@@ -185,3 +185,20 @@ export interface EtfCompareApiResponse {
   etfs: EtfResponse[];
   warnings: string[];
 }
+
+export interface FinnhubEtfListItem {
+  symbol: string;
+  name: string;
+  type: string;
+  mic: string;
+  figi: string;
+  isin: string;
+  currency: string;
+}
+
+export interface EtfListApiResponse {
+  etfs: FinnhubEtfListItem[];
+  totalCount: number;
+  provider: string;
+  cachedAt: string;
+}

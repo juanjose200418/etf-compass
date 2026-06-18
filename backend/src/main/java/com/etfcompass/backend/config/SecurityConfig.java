@@ -56,6 +56,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/actuator/health").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/etfs/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/market-data/**").permitAll()
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated())
         .authenticationProvider(authenticationProvider)

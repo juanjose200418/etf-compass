@@ -597,6 +597,40 @@
 
     <section class="section">
       <div class="section-header">
+        <h2>Explorar todos los ETFs</h2>
+        <button class="btn-link" type="button" (click)="toggleFinnhubBrowser()">{{ finnhubBrowserOpen ? 'Cerrar' : 'Abrir explorador' }}</button>
+      </div>
+      <div *ngIf="finnhubBrowserOpen">
+        <div *ngIf="finnhubEtfsLoading" class="empty-state"><span class="empty-icon" style="font-size:1.5rem;">⏳</span><p>Cargando ETFs desde Finnhub…</p></div>
+        <div *ngIf="finnhubEtfsError" class="empty-state"><span class="empty-icon" style="font-size:1.5rem;">⚠️</span><p>{{ finnhubEtfsError }}</p></div>
+        <div *ngIf="finnhubEtfs && !finnhubEtfsLoading">
+          <p class="search-hint">
+            Datos obtenidos desde <strong>Finnhub</strong> como API pública. La cobertura puede no ser 100% completa.
+            <ng-container *ngIf="finnhubEtfs"> · <strong>{{ finnhubEtfs.length }}</strong> ETFs disponibles</ng-container>
+          </p>
+          <input type="text" placeholder="Filtrar por ticker o nombre…" autocomplete="off" style="width:100%;margin-bottom:0.75rem;padding:0.6rem 0.8rem;border:1px solid #e2e8f0;border-radius:12px;font-size:0.9rem;font-weight:700;background:#fff;" [value]="finnhubEtfSearchQuery" (input)="finnhubEtfSearchQuery = $any($event.target).value">
+          <div class="analysis-scroll" style="max-height:20rem;">
+            <div class="search-item" *ngFor="let etf of filteredFinnhubEtfs">
+              <div class="search-item-info">
+                <span class="search-ticker">{{ etf.symbol }}</span>
+                <span class="search-name">{{ etf.name || '—' }}</span>
+                <span class="search-name" *ngIf="etf.currency" style="font-size:0.7rem;">{{ etf.currency }}</span>
+              </div>
+              <div class="search-item-actions">
+                <button class="btn-add" [disabled]="isMaxedOut() || service.isTickerPending(etf.symbol)" (click)="selectETF(etf.symbol)">
+                  <ng-container *ngIf="isSelected(etf.symbol)">✓ Añadido</ng-container>
+                  <ng-container *ngIf="!isSelected(etf.symbol) && service.isTickerPending(etf.symbol)">⏳</ng-container>
+                  <ng-container *ngIf="!isSelected(etf.symbol) && !service.isTickerPending(etf.symbol)">+ Añadir</ng-container>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
         <h2>Comparison</h2>
         <span class="badge">{{ service.selectedETFs().length }}/{{ MAX_COMPARE }}</span>
         <button class="btn-link" *ngIf="service.selectedETFs().length > 0" (click)="service.clearSelection()">Clear all</button>

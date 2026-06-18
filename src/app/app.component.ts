@@ -8,7 +8,7 @@ import { EtfService } from './etf.service';
 import { ETF } from './types';
 import { AuthResult, AuthService } from './auth.service';
 import { PortfolioApiService } from './portfolio-api.service';
-import { AllocationSliceResponse, DashboardResponse, EtfHistoryApiResponse, PortfolioAnalyticsResponse, PortfolioResponse, PositionResponse } from './api.types';
+import { AllocationSliceResponse, DashboardResponse, EtfHistoryApiResponse, EtfListApiResponse, FinnhubEtfListItem, PortfolioAnalyticsResponse, PortfolioResponse, PositionResponse } from './api.types';
 
 interface BestValues {
   minTER: number | null; maxFundSize: number | null;
@@ -123,6 +123,12 @@ export class AppComponent implements OnInit {
   searchOpen = false;
   activeSearchIndex = -1;
   showPromo = false;
+
+  finnhubEtfs: FinnhubEtfListItem[] | null = null;
+  finnhubEtfsLoading = false;
+  finnhubEtfsError: string | null = null;
+  finnhubEtfSearchQuery = '';
+  finnhubBrowserOpen = false;
 
   authMode: AuthMode = 'login';
   authEmail = '';
@@ -1138,6 +1144,38 @@ export class AppComponent implements OnInit {
     this.searchOpen = false;
     this.activeSearchIndex = -1;
     this.service.clearSearchResults();
+  }
+
+  toggleFinnhubBrowser(): void {
+    this.finnhubBrowserOpen = !this.finnhubBrowserOpen;
+    if (this.finnhubBrowserOpen && !this.finnhubEtfs) {
+      this.loadFinnhubEtfs();
+    }
+  }
+
+  loadFinnhubEtfs(): void {
+    if (this.finnhubEtfsLoading) return;
+    this.finnhubEtfsLoading = true;
+    this.finnhubEtfsError = null;
+    this.etfApi.listEtfs().subscribe({
+      next: data => {
+        this.finnhubEtfs = data.etfs;
+        this.finnhubEtfsLoading = false;
+      },
+      error: () => {
+        this.finnhubEtfsError = 'No se pudieron cargar los ETFs desde Finnhub. Intentalo de nuevo mas tarde.';
+        this.finnhubEtfsLoading = false;
+      }
+    });
+  }
+
+  get filteredFinnhubEtfs(): FinnhubEtfListItem[] {
+    if (!this.finnhubEtfs) return [];
+    const q = this.finnhubEtfSearchQuery.trim().toLowerCase();
+    if (!q) return this.finnhubEtfs;
+    return this.finnhubEtfs.filter(
+      etf => etf.symbol.toLowerCase().includes(q) || (etf.name && etf.name.toLowerCase().includes(q))
+    );
   }
 
   openPromo(): void {

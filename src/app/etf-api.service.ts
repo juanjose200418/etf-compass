@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { map } from 'rxjs';
 import { buildApiUrl } from './api-url';
-import { ApiResponse, EtfDetailApiResponse, EtfHistoryApiResponse, EtfResponse } from './api.types';
+import { ApiResponse, EtfDetailApiResponse, EtfHistoryApiResponse, EtfListApiResponse, EtfResponse, FinnhubEtfListItem } from './api.types';
 import { ETF } from './types';
 
 @Injectable({ providedIn: 'root' })
@@ -13,6 +13,12 @@ export class EtfApiService {
     const q = (query ?? '').trim();
     return this.http.get<ApiResponse<EtfResponse[]>>(buildApiUrl(`/etfs?q=${encodeURIComponent(q)}`)).pipe(
       map(res => res.data.map(etf => this.mapETF(etf)))
+    );
+  }
+
+  listEtfs() {
+    return this.http.get<ApiResponse<EtfListApiResponse>>(buildApiUrl('/market-data/etfs')).pipe(
+      map(res => res.data)
     );
   }
 
