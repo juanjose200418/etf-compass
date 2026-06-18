@@ -96,7 +96,7 @@
           <strong>{{ analytics()?.sectorDataQuality?.coveragePercentage?.toFixed(1) || '0.0' }}% coverage</strong>
         </button>
         <button class="orbit-chip" type="button" (click)="focusSection('country-panel')">
-          <span>Geografia</span>
+          <span>Geografía</span>
           <strong>{{ analytics()?.countryDataQuality?.coveragePercentage?.toFixed(1) || '0.0' }}% coverage</strong>
         </button>
         <button class="orbit-chip" type="button" (click)="focusSection('etf-panel')">
@@ -227,7 +227,7 @@
       <div class="analytics-grid" *ngIf="analytics() as data">
         <article class="analysis-note">
           <strong>Precision de exposiciones</strong>
-          <span>Los sectores, industrias y geografias se calculan con metadata ETF ponderada y, cuando hay holdings suficientes, con desglose real por posiciones. Si falta cobertura del proveedor, lo veras marcado como Unclassified en lugar de esconderse como Other.</span>
+          <span>Los sectores, industrias y geografías se calculan con metadata ETF ponderada y, cuando hay holdings suficientes, con desglose real por posiciones. Si falta cobertura del proveedor, lo veras marcado como Unclassified en lugar de esconderse como Other.</span>
         </article>
         <article class="analysis-card interactive-panel" id="industry-panel" [class.expanded]="analyticsExpanded.industry" [class.section-focused]="isFocusedSection('industry-panel')">
           <div class="analysis-card-head">
@@ -239,10 +239,10 @@
               {{ analyticsExpanded.industry ? 'Ver menos' : 'Ver todas' }}
             </button>
           </div>
-          <div class="analysis-quality" *ngIf="data.industryDataQuality as quality">
-            <span>Cobertura industria: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
-            <span>Look-through real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
-            <span>Datos estimados: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
+           <div class="analysis-quality" *ngIf="data.industryDataQuality as quality">
+            <span class="quality-badge coverage">Cobertura: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
+            <span class="quality-badge lookthrough">Real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
+            <span class="quality-badge estimated">Estimado: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
           </div>
           <div class="analysis-warning" *ngIf="dataQualityWarning('industry', data.industryDataQuality) as warning">
             <strong>Warning</strong>
@@ -284,9 +284,9 @@
             </button>
           </div>
           <div class="analysis-quality" *ngIf="data.sectorDataQuality as quality">
-            <span>Cobertura sectorial: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
-            <span>Look-through real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
-            <span>Datos estimados: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
+            <span class="quality-badge coverage">Cobertura: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
+            <span class="quality-badge lookthrough">Real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
+            <span class="quality-badge estimated">Estimado: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
           </div>
           <div class="analysis-warning" *ngIf="sectorCoverageWarning(data) as warning">
             <strong>Warning</strong>
@@ -340,7 +340,7 @@
         <article class="analysis-card interactive-panel" id="country-panel" [class.expanded]="analyticsExpanded.country" [class.section-focused]="isFocusedSection('country-panel')">
           <div class="analysis-card-head">
             <div>
-              <h3>Geografia</h3>
+              <h3>Geografía</h3>
               <p>{{ analyticsSectionCount(data.countryExposure) }} categorias disponibles</p>
             </div>
             <button class="analysis-toggle" type="button" *ngIf="shouldShowAnalyticsToggle(data.countryExposure)" (click)="toggleAnalyticsSection('country')">
@@ -348,9 +348,9 @@
             </button>
           </div>
           <div class="analysis-quality" *ngIf="data.countryDataQuality as quality">
-            <span>Cobertura geografia: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
-            <span>Look-through real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
-            <span>Datos estimados: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
+            <span class="quality-badge coverage">Cobertura: <strong>{{ quality.coveragePercentage.toFixed(1) }}%</strong></span>
+            <span class="quality-badge lookthrough">Real: <strong>{{ quality.lookThroughCoveragePercentage.toFixed(1) }}%</strong></span>
+            <span class="quality-badge estimated">Estimado: <strong>{{ quality.estimatedPercentage.toFixed(1) }}%</strong></span>
           </div>
           <div class="analysis-warning" *ngIf="dataQualityWarning('geography', data.countryDataQuality) as warning">
             <strong>Warning</strong>
