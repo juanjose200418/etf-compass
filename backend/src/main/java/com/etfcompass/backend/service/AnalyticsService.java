@@ -36,6 +36,167 @@ public class AnalyticsService {
   private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
   private static final BigDecimal MIN_HOLDING_BREAKDOWN_WEIGHT = BigDecimal.valueOf(35);
 
+  private static final Map<String, String> INDUSTRY_TO_SECTOR = Map.<String, String>ofEntries(
+    Map.entry("Semiconductors", "Technology"),
+    Map.entry("Software", "Technology"),
+    Map.entry("Software—Application", "Technology"),
+    Map.entry("Software—Infrastructure", "Technology"),
+    Map.entry("Software—IT Services", "Technology"),
+    Map.entry("Consumer Electronics", "Technology"),
+    Map.entry("Computer Hardware", "Technology"),
+    Map.entry("Electronic Components", "Technology"),
+    Map.entry("Electronic Gaming & Multimedia", "Technology"),
+    Map.entry("Information Technology Services", "Technology"),
+    Map.entry("IT Services", "Technology"),
+    Map.entry("Technology Hardware, Storage & Peripherals", "Technology"),
+    Map.entry("Communication Equipment", "Technology"),
+    Map.entry("Scientific & Technical Instruments", "Technology"),
+    Map.entry("Solar", "Technology"),
+    Map.entry("Internet Content & Information", "Technology"),
+    Map.entry("Internet Retail", "Consumer Cyclical"),
+    Map.entry("Internet Service Providers", "Communication Services"),
+    Map.entry("Banks", "Financial Services"),
+    Map.entry("Banks—Diversified", "Financial Services"),
+    Map.entry("Banks—Regional", "Financial Services"),
+    Map.entry("Capital Markets", "Financial Services"),
+    Map.entry("Insurance", "Financial Services"),
+    Map.entry("Insurance—Diversified", "Financial Services"),
+    Map.entry("Insurance—Life", "Financial Services"),
+    Map.entry("Insurance—Property & Casualty", "Financial Services"),
+    Map.entry("Insurance—Reinsurance", "Financial Services"),
+    Map.entry("Insurance—Specialty", "Financial Services"),
+    Map.entry("Asset Management", "Financial Services"),
+    Map.entry("Financial Conglomerates", "Financial Services"),
+    Map.entry("Financial Data & Stock Exchanges", "Financial Services"),
+    Map.entry("Credit Services", "Financial Services"),
+    Map.entry("Mortgage Finance", "Financial Services"),
+    Map.entry("Shell Companies", "Financial Services"),
+    Map.entry("Health Care Plans", "Healthcare"),
+    Map.entry("Healthcare", "Healthcare"),
+    Map.entry("Medical Devices", "Healthcare"),
+    Map.entry("Medical Instruments & Supplies", "Healthcare"),
+    Map.entry("Medical Diagnostics & Research", "Healthcare"),
+    Map.entry("Medical Care Facilities", "Healthcare"),
+    Map.entry("Medical Distribution", "Healthcare"),
+    Map.entry("Drug Manufacturers", "Healthcare"),
+    Map.entry("Drug Manufacturers—General", "Healthcare"),
+    Map.entry("Drug Manufacturers—Specialty & Generic", "Healthcare"),
+    Map.entry("Biotechnology", "Healthcare"),
+    Map.entry("Pharmaceutical Retailers", "Healthcare"),
+    Map.entry("Health Information Services", "Healthcare"),
+    Map.entry("Oil & Gas E&P", "Energy"),
+    Map.entry("Oil & Gas Integrated", "Energy"),
+    Map.entry("Oil & Gas Midstream", "Energy"),
+    Map.entry("Oil & Gas Drilling", "Energy"),
+    Map.entry("Oil & Gas Equipment & Services", "Energy"),
+    Map.entry("Oil & Gas Refining & Marketing", "Energy"),
+    Map.entry("Oil & Gas Transportation", "Energy"),
+    Map.entry("Uranium", "Energy"),
+    Map.entry("Coal", "Energy"),
+    Map.entry("Aerospace & Defense", "Industrials"),
+    Map.entry("Airlines", "Industrials"),
+    Map.entry("Railroads", "Industrials"),
+    Map.entry("Marine Shipping", "Industrials"),
+    Map.entry("Trucking", "Industrials"),
+    Map.entry("Logistics", "Industrials"),
+    Map.entry("Integrated Freight & Logistics", "Industrials"),
+    Map.entry("Industrial Distribution", "Industrials"),
+    Map.entry("Industrial Conglomerates", "Industrials"),
+    Map.entry("Machinery", "Industrials"),
+    Map.entry("Farm & Heavy Construction Machinery", "Industrials"),
+    Map.entry("Specialty Industrial Machinery", "Industrials"),
+    Map.entry("Pollution & Treatment Controls", "Industrials"),
+    Map.entry("Waste Management", "Industrials"),
+    Map.entry("Engineering & Construction", "Industrials"),
+    Map.entry("Building Materials", "Industrials"),
+    Map.entry("Construction Materials", "Industrials"),
+    Map.entry("Consulting Services", "Industrials"),
+    Map.entry("Business Equipment & Supplies", "Industrials"),
+    Map.entry("Security & Protection Services", "Industrials"),
+    Map.entry("Staffing & Employment Services", "Industrials"),
+    Map.entry("Manpower", "Industrials"),
+    Map.entry("Rental & Leasing Services", "Industrials"),
+    Map.entry("Electrical Equipment", "Industrials"),
+    Map.entry("Specialty Business Services", "Industrials"),
+    Map.entry("Farm Products", "Consumer Defensive"),
+    Map.entry("Beverages—Non-Alcoholic", "Consumer Defensive"),
+    Map.entry("Beverages—Alcoholic", "Consumer Defensive"),
+    Map.entry("Beverages—Wineries & Distilleries", "Consumer Defensive"),
+    Map.entry("Beverages—Brewers", "Consumer Defensive"),
+    Map.entry("Food—Confectioners & Ingredients", "Consumer Defensive"),
+    Map.entry("Food—Ingredients & Seasonings", "Consumer Defensive"),
+    Map.entry("Food—Meat Products", "Consumer Defensive"),
+    Map.entry("Packaged Foods", "Consumer Defensive"),
+    Map.entry("Grocery Stores", "Consumer Defensive"),
+    Map.entry("Discount Stores", "Consumer Defensive"),
+    Map.entry("Household & Personal Products", "Consumer Defensive"),
+    Map.entry("Tobacco", "Consumer Defensive"),
+    Map.entry("Education & Training Services", "Consumer Defensive"),
+    Map.entry("Auto Manufacturers", "Consumer Cyclical"),
+    Map.entry("Auto Parts", "Consumer Cyclical"),
+    Map.entry("Auto & Truck Dealerships", "Consumer Cyclical"),
+    Map.entry("Recreational Vehicles", "Consumer Cyclical"),
+    Map.entry("Furnishings, Fixtures & Appliances", "Consumer Cyclical"),
+    Map.entry("Residential Construction", "Consumer Cyclical"),
+    Map.entry("Homebuilding", "Consumer Cyclical"),
+    Map.entry("Apparel Retail", "Consumer Cyclical"),
+    Map.entry("Apparel Manufacturing", "Consumer Cyclical"),
+    Map.entry("Footwear & Accessories", "Consumer Cyclical"),
+    Map.entry("Textile Manufacturing", "Consumer Cyclical"),
+    Map.entry("Specialty Retail", "Consumer Cyclical"),
+    Map.entry("Department Stores", "Consumer Cyclical"),
+    Map.entry("Restaurants", "Consumer Cyclical"),
+    Map.entry("Travel Services", "Consumer Cyclical"),
+    Map.entry("Resorts & Casinos", "Consumer Cyclical"),
+    Map.entry("Lodging", "Consumer Cyclical"),
+    Map.entry("Leisure", "Consumer Cyclical"),
+    Map.entry("Gambling", "Consumer Cyclical"),
+    Map.entry("Packaging & Containers", "Consumer Cyclical"),
+    Map.entry("Personal Services", "Consumer Cyclical"),
+    Map.entry("Publishing", "Communication Services"),
+    Map.entry("Advertising Agencies", "Communication Services"),
+    Map.entry("Media & Entertainment", "Communication Services"),
+    Map.entry("Entertainment", "Communication Services"),
+    Map.entry("Telecommunications", "Communication Services"),
+    Map.entry("Telecom Services", "Communication Services"),
+    Map.entry("Wireless Communications", "Communication Services"),
+    Map.entry("Broadcasting", "Communication Services"),
+    Map.entry("Cable & Other Pay Television", "Communication Services"),
+    Map.entry("Social Media", "Communication Services"),
+    Map.entry("Conglomerates", "Industrials"),
+    Map.entry("Metals & Mining", "Basic Materials"),
+    Map.entry("Steel", "Basic Materials"),
+    Map.entry("Copper", "Basic Materials"),
+    Map.entry("Gold", "Basic Materials"),
+    Map.entry("Silver", "Basic Materials"),
+    Map.entry("Other Industrial Metals & Mining", "Basic Materials"),
+    Map.entry("Aluminum", "Basic Materials"),
+    Map.entry("Industrial Metals & Minerals", "Basic Materials"),
+    Map.entry("Specialty Chemicals", "Basic Materials"),
+    Map.entry("Chemicals", "Basic Materials"),
+    Map.entry("Agricultural Inputs", "Basic Materials"),
+    Map.entry("Lumber & Wood Production", "Basic Materials"),
+    Map.entry("Paper & Paper Products", "Basic Materials"),
+    Map.entry("Forest Products", "Basic Materials"),
+    Map.entry("Minerals", "Basic Materials"),
+    Map.entry("Real Estate—Diversified", "Real Estate"),
+    Map.entry("Real Estate—Development", "Real Estate"),
+    Map.entry("Real Estate Services", "Real Estate"),
+    Map.entry("REIT—Diversified", "Real Estate"),
+    Map.entry("REIT—Healthcare", "Real Estate"),
+    Map.entry("REIT—Hotel & Motel", "Real Estate"),
+    Map.entry("REIT—Industrial", "Real Estate"),
+    Map.entry("REIT—Mortgage", "Real Estate"),
+    Map.entry("REIT—Office", "Real Estate"),
+    Map.entry("REIT—Residential", "Real Estate"),
+    Map.entry("REIT—Retail", "Real Estate"),
+    Map.entry("REIT—Specialty", "Real Estate"),
+    Map.entry("Utilities—Regulated Electric", "Utilities"),
+    Map.entry("Utilities—Regulated Gas", "Utilities"),
+    Map.entry("Utilities—Regulated Water", "Utilities"),
+    Map.entry("Utilities—Independent Power Producers", "Utilities"),
+    Map.entry("Utilities—Renewable", "Utilities"));
+
   private final PortfolioService portfolioService;
   private final PositionRepository positionRepository;
   private final PortfolioRepository portfolioRepository;
@@ -255,7 +416,7 @@ public class AnalyticsService {
       java.util.function.Function<EtfHolding, String> holdingLabelExtractor
   ) {
     List<EtfHolding> holdings = holdingRepository.findByEtf_IdOrderByWeightDesc(position.getEtf().getId());
-    Map<String, BigDecimal> holdingWeights = aggregateHoldingWeights(holdings, holdingLabelExtractor);
+    Map<String, BigDecimal> holdingWeights = aggregateHoldingWeights(holdings, h -> resolveHoldingLabel(type, h, holdingLabelExtractor));
     BigDecimal holdingCoverage = holdingWeights.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 
     var exposures = exposureRepository.findByEtf_IdAndType(position.getEtf().getId(), type);
@@ -422,6 +583,27 @@ public class AnalyticsService {
     if (remainingWeight.signum() > 0) {
       amounts.merge(unclassifiedLabel(type), weighted(positionValue, remainingWeight), BigDecimal::add);
     }
+  }
+
+  private String resolveHoldingLabel(
+      ExposureType type,
+      EtfHolding holding,
+      java.util.function.Function<EtfHolding, String> labelExtractor
+  ) {
+    String label = normalizeHoldingLabel(labelExtractor.apply(holding));
+    if (label != null) {
+      return label;
+    }
+    if (type == ExposureType.SECTOR) {
+      String industry = normalizeHoldingLabel(holding.getIndustry());
+      if (industry != null) {
+        String mappedSector = INDUSTRY_TO_SECTOR.get(industry);
+        if (mappedSector != null) {
+          return mappedSector;
+        }
+      }
+    }
+    return null;
   }
 
   private String normalizeHoldingLabel(String value) {
