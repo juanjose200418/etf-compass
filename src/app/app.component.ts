@@ -1129,8 +1129,16 @@ export class AppComponent implements OnInit {
   }
 
   openPromo(): void {
-    this.showPromo = true;
-    document.documentElement.requestFullscreen?.().catch(() => undefined);
+    if (window.innerWidth < 768) {
+      window.open('/promo/current-app-20s.html', '_blank');
+    } else {
+      this.showPromo = true;
+      document.documentElement.requestFullscreen?.().catch(() => undefined);
+    }
+  }
+
+  openPromoNewTab(): void {
+    window.open('/promo/current-app-20s.html', '_blank');
   }
 
   closePromo(): void {

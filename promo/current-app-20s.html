@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <title>ETF Compass - Portfolio Analytics 20s</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,13 +12,107 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      min-height: 100vh;
+      min-height: 100dvh;
       display: grid;
       place-items: center;
+      background: #020617;
       overflow: hidden;
-      background: #05070a;
-      font-family: Manrope, sans-serif;
+      font-family: Manrope, system-ui, sans-serif;
       color: #f8fafc;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        align-content: center;
+      }
+      h1 { font-size: 86px; }
+      h2 { font-size: 54px; }
+      .hero-sub { font-size: 20px; }
+      .copy p { font-size: 18px; }
+      .ticker { font-size: 20px; }
+      .value { font-size: 18px; }
+      .brand-name { font-size: 18px; }
+      .kicker { font-size: 13px; }
+      .kicker::before, .kicker::after { width: 28px; }
+      .mark { width: 34px; height: 34px; }
+      .stage { padding: 60px 40px 60px; grid-template-columns: 1fr; gap: 28px; }
+      .glass-card { border-radius: 20px; }
+      .manual-panel { padding: 20px; }
+      .formula-card { padding: 24px; }
+      .formula { font-size: 20px; gap: 12px; }
+      .input-row, .allocation-row { grid-template-columns: 80px 1fr 80px; gap: 10px; padding: 12px 14px; }
+      .dashboard-layout { padding: 60px 30px 60px; grid-template-columns: 1fr; grid-template-rows: auto; }
+      .browser-shell { border-radius: 20px; }
+      .browser-topbar { height: 56px; padding: 0 16px; }
+      .browser-topbar::after { top: 56px; }
+      .top-brand { top: 24px; left: 30px; gap: 10px; }
+      .live-stack { top: 24px; right: 30px; width: 220px; gap: 8px; }
+      .live-chip { padding: 10px 12px; gap: 8px; }
+      .timer { left: 30px; right: 30px; bottom: 24px; }
+      .dashboard-title { font-size: 20px; }
+      .dashboard-layout p { font-size: 14px; }
+      .allocation-card { padding: 16px; }
+      .allocation-row { margin-top: 6px; }
+      .panel-head strong { font-size: 18px; }
+      .panel-head { margin-bottom: 14px; }
+      .pill { font-size: 11px; padding: 6px 10px; }
+      .scene-hero { padding: 0 20px; }
+      .scene-hero .hero-sub { margin-top: 16px; }
+      .live-label b { font-size: 11px; }
+      .live-label span { font-size: 13px; }
+      .live-dot { width: 8px; height: 8px; }
+      .browser-url { height: 32px; font-size: 12px; }
+      .browser-badge { font-size: 10px; padding: 6px 10px; }
+      .copy h2 { font-size: 34px; }
+      .copy p { margin-top: 14px; }
+      .cta { font-size: 20px; padding: 16px 30px; }
+      .launch-link { gap: 10px; }
+      .launch-link b { font-size: 13px; }
+      .launch-link span { font-size: 12px; }
+      .final-card { padding: 24px; }
+      .company { width: 80px; }
+      .market-ribbon { display: none; }
+      .scene-holdings .copy, .scene-input .copy, .scene-formula .copy { text-align: center; }
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 56px; }
+      h2 { font-size: 36px; }
+      .hero-sub { font-size: 16px; }
+      .stage { padding: 40px 20px 40px; gap: 20px; }
+      .top-brand { top: 16px; left: 16px; gap: 8px; }
+      .live-stack { top: 16px; right: 16px; width: 160px; }
+      .live-chip { padding: 8px 10px; }
+      .mark { width: 28px; height: 28px; font-size: 14px; }
+      .brand-name { font-size: 15px; }
+      .timer { left: 16px; right: 16px; bottom: 16px; height: 3px; }
+      .dashboard-layout { padding: 40px 16px 40px; }
+      .formula { font-size: 16px; }
+      .formula span { padding: 14px 16px; }
+      .input-row, .allocation-row { grid-template-columns: 60px 1fr 60px; padding: 10px 12px; }
+      .kicker { font-size: 11px; gap: 6px; }
+      .kicker::before, .kicker::after { width: 18px; }
+      .manual-panel { padding: 14px; }
+      .copy h2 { font-size: 26px; line-height: 1.0; }
+      .copy p { font-size: 15px; }
+      .browser-topbar { height: 44px; padding: 0 10px; }
+      .browser-topbar::after { top: 44px; }
+      .browser-dots { gap: 6px; }
+      .browser-dots i { width: 8px; height: 8px; }
+      .browser-url { height: 28px; font-size: 10px; padding: 0 10px; gap: 6px; }
+      .browser-badge { font-size: 9px; padding: 4px 8px; }
+      .dashboard-title { font-size: 16px; }
+      .allocation-card { padding: 12px; }
+      .panel-head strong { font-size: 15px; }
+      .live-label b { font-size: 10px; }
+      .live-label span { font-size: 11px; }
+      .live-status { font-size: 10px; padding: 4px 8px; }
+      .cta { font-size: 17px; padding: 14px 24px; }
+      .final-card { padding: 18px; }
+      .launch-link b { font-size: 12px; }
+      .launch-link span { font-size: 11px; }
     }
 
     .composition {
@@ -915,6 +1009,10 @@
     // preview still autoplays so the app's "Ver anuncio" button works.
     if (typeof window.__HYPERFRAMES__ === "undefined") {
       const root = document.querySelector(".composition");
+      const inIframe = window !== window.parent;
+      const isMobile = window.innerWidth < 768;
+      const isStandalone = !inIframe && isMobile;
+
       const fitComposition = () => {
         const usableW = window.innerWidth;
         const usableH = window.innerHeight;
@@ -925,6 +1023,11 @@
 
       fitComposition();
       window.addEventListener("resize", fitComposition);
+
+      if (isStandalone) {
+        document.querySelector(".composition")?.classList.add("standalone-mobile");
+      }
+
       tl.play(0);
     }
   </script>

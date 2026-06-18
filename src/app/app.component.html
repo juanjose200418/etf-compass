@@ -20,7 +20,10 @@
   <div class="promo-frame-wrap">
     <div class="promo-toolbar">
       <span>ETF Compass · anuncio 20s</span>
-      <button type="button" (click)="closePromo()" aria-label="Cerrar video">×</button>
+      <div>
+        <button type="button" (click)="openPromoNewTab()" aria-label="Abrir en nueva pestaña" title="Abrir en nueva pestaña">⛶</button>
+        <button type="button" (click)="closePromo()" aria-label="Cerrar video">×</button>
+      </div>
     </div>
     <iframe src="/promo/current-app-20s.html" title="ETF Compass promotional video" sandbox="allow-scripts" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
   </div>
