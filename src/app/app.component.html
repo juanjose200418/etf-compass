@@ -75,7 +75,7 @@
           </article>
           <article class="hero-stat-card accent-blue" *ngIf="analytics() as data">
             <span>Cobertura sectorial</span>
-            <strong>{{ data.sectorDataQuality?.coveragePercentage?.toFixed(1) || '0.0' }}%</strong>
+            <strong>{{ data.sectorDataQuality.coveragePercentage.toFixed(1) || '0.0' }}%</strong>
             <small>Datos disponibles</small>
           </article>
         </div>
